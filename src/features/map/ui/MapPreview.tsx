@@ -14,6 +14,7 @@ interface MapPreviewProps {
   zoom: number;
   mapRef: MapInstanceRef;
   interactive?: boolean;
+  allowRotation?: boolean;
   minZoom?: number;
   maxZoom?: number;
   onMoveEnd?: (center: [number, number], zoom: number) => void;
@@ -35,6 +36,7 @@ export default function MapPreview({
   zoom,
   mapRef,
   interactive = false,
+  allowRotation = false,
   minZoom,
   maxZoom,
   onMoveEnd,
@@ -94,17 +96,23 @@ export default function MapPreview({
       map.touchZoomRotate.enable();
       map.doubleClickZoom.enable();
       map.keyboard.enable();
+      if (allowRotation) {
+        map.dragRotate.enable();
+        map.touchZoomRotate.enableRotation();
+      } else {
+        map.dragRotate.disable();
+        map.touchZoomRotate.disableRotation();
+      }
     } else {
       map.scrollZoom.disable();
       map.dragPan.disable();
       map.touchZoomRotate.disable();
       map.doubleClickZoom.disable();
       map.keyboard.disable();
+      map.touchZoomRotate.disableRotation();
+      map.dragRotate.disable();
     }
-
-    // Keep bearing fixed for poster output.
-    map.dragRotate.disable();
-  }, [interactive, mapRef]);
+  }, [interactive, allowRotation, mapRef]);
 
   useEffect(() => {
     const map = mapRef.current;

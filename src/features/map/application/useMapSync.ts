@@ -82,6 +82,7 @@ export function useMapSync() {
   const { form } = state;
   const lastLocationLookupAtRef = useRef(0);
   const lastLookupCoordsRef = useRef<[number, number] | null>(null);
+  const latestLocationLookupSeqRef = useRef(0);
 
   const [containerPx, setContainerPx] = useState(DEFAULT_CONTAINER_PX);
   const effectiveContainerPx = containerPx * MAP_OVERZOOM_SCALE;
@@ -136,9 +137,13 @@ export function useMapSync() {
 
       lastLookupCoordsRef.current = [lat, lon];
       lastLocationLookupAtRef.current = now;
+      const lookupSeq = ++latestLocationLookupSeqRef.current;
 
       void reverseGeocodeCoordinates(lat, lon)
         .then((nearest) => {
+          if (lookupSeq !== latestLocationLookupSeqRef.current) {
+            return;
+          }
           const fallbackLabel = String(nearest.label ?? "").trim();
           const nextCity = String(nearest.city ?? "").trim();
           const nextCountry = String(nearest.country ?? "").trim();
