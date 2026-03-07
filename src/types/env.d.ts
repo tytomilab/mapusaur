@@ -13,6 +13,7 @@ interface ImportMetaEnv {
   readonly VITE_SOCIAL_REDDIT?: string;
   readonly VITE_SOCIAL_THREADS?: string;
   readonly VITE_SOCIAL_YOUTUBE?: string;
+  readonly VITE_KOFI_URL?: string;
   readonly VITE_APP_CREDIT_URL?: string;
 }
 

@@ -33,6 +33,7 @@ export { compositeExport } from "@/features/poster/infrastructure/renderer";
 export { captureMapAsCanvas } from "@/features/export/infrastructure/mapExporter";
 
 export { createPngBlob } from "@/features/export/infrastructure/pngExporter";
+export { createLayeredSvgBlobFromMap } from "@/features/export/infrastructure/layeredSvgExporter";
 
 export { createPdfBlobFromCanvas } from "@/features/export/infrastructure/pdfExporter";
 

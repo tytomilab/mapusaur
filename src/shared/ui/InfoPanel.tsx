@@ -10,11 +10,13 @@ import {
   SOCIAL_REDDIT,
   SOCIAL_THREADS,
   SOCIAL_YOUTUBE,
+  KOFI_URL,
 } from "@/core/config";
 import {
   GitHubIcon,
   StarIcon,
   CheckIcon,
+  CoffeeIcon,
   LinkedInIcon,
   InstagramIcon,
   RedditIcon,
@@ -66,6 +68,7 @@ function HelpUsGrowSection({
       label: "YouTube",
     },
   ];
+  const kofiUrl = String(KOFI_URL ?? "").trim();
 
   return (
     <section className="info-panel-section">
@@ -76,9 +79,9 @@ function HelpUsGrowSection({
       </p>
 
       <div className="hug-rows">
-        {/* Join the project */}
+        {/* Support the project */}
         <div className="hug-row">
-          <span className="hug-row-label">Join the project</span>
+          <span className="hug-row-label">Support the project</span>
           <div className="hug-row-content">
             {repoUrl ? (
               <a
@@ -115,6 +118,23 @@ function HelpUsGrowSection({
               >
                 <StarIcon className="badge-icon" />
                 <span>Star</span>
+              </span>
+            )}
+            {kofiUrl ? (
+              <a
+                className="github-badge"
+                href={kofiUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Support TerraInk on Ko-fi"
+              >
+                <CoffeeIcon className="badge-icon" />
+                <span>Support on Ko-fi</span>
+              </a>
+            ) : (
+              <span className="github-badge" style={{ opacity: 0.45 }}>
+                <CoffeeIcon className="badge-icon" />
+                <span>Support on Ko-fi</span>
               </span>
             )}
           </div>

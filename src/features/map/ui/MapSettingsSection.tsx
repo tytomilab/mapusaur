@@ -360,6 +360,42 @@ export default function MapSettingsSection({
                   <span className="theme-switch-track" aria-hidden="true" />
                 </span>
               </label>
+              <label className="toggle-field">
+                <span>Show roads</span>
+                <span className="theme-switch">
+                  <input
+                    type="checkbox"
+                    name="includeRoads"
+                    checked={Boolean(form.includeRoads)}
+                    onChange={onChange}
+                  />
+                  <span className="theme-switch-track" aria-hidden="true" />
+                </span>
+              </label>
+              <label className="toggle-field">
+                <span>Show rail</span>
+                <span className="theme-switch">
+                  <input
+                    type="checkbox"
+                    name="includeRail"
+                    checked={Boolean(form.includeRail)}
+                    onChange={onChange}
+                  />
+                  <span className="theme-switch-track" aria-hidden="true" />
+                </span>
+              </label>
+              <label className="toggle-field">
+                <span>Show aeroway</span>
+                <span className="theme-switch">
+                  <input
+                    type="checkbox"
+                    name="includeAeroway"
+                    checked={Boolean(form.includeAeroway)}
+                    onChange={onChange}
+                  />
+                  <span className="theme-switch-track" aria-hidden="true" />
+                </span>
+              </label>
             </div>
           ) : null}
         </div>

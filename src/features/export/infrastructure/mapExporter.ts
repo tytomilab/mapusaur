@@ -2,9 +2,18 @@ import maplibregl, {
   type Map as MaplibreMap,
   type StyleSpecification,
 } from "maplibre-gl";
+import type { MarkerProjectionInput } from "@/features/markers/domain/types";
 import { MAP_OVERZOOM_SCALE } from "@/features/map/infrastructure/constants";
 
 const EXPORT_MAP_TIMEOUT_MS = 15_000;
+
+export interface CapturedMapResult {
+  canvas: HTMLCanvasElement;
+  markerProjection: MarkerProjectionInput;
+  markerScaleX: number;
+  markerScaleY: number;
+  markerSizeScale: number;
+}
 
 function waitForMapIdle(map: MaplibreMap): Promise<void> {
   return new Promise<void>((resolve, reject) => {
@@ -39,7 +48,7 @@ export async function captureMapAsCanvas(
   map: MaplibreMap,
   exportWidth: number,
   exportHeight: number,
-): Promise<HTMLCanvasElement> {
+): Promise<CapturedMapResult> {
   await waitForMapIdle(map);
 
   const internalMapContainer = map.getContainer();
@@ -109,7 +118,20 @@ export async function captureMapAsCanvas(
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(glCanvas, 0, 0, exportWidth, exportHeight);
-    return exportCanvas;
+      return {
+        canvas: exportCanvas,
+        markerProjection: {
+        centerLat: center.lat,
+        centerLon: center.lng,
+        zoom,
+        bearingDeg: bearing,
+        canvasWidth: renderWidth,
+        canvasHeight: renderHeight,
+        },
+        markerScaleX: exportWidth / renderWidth,
+        markerScaleY: exportHeight / renderHeight,
+        markerSizeScale: MAP_OVERZOOM_SCALE,
+      };
   } finally {
     exportMap.remove();
     offscreenContainer.remove();

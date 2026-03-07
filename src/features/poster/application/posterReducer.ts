@@ -1,5 +1,16 @@
 import type { SearchResult } from "@/features/location/domain/types";
-import { parseLocationParts } from "@/shared/utils/location";
+import type {
+  MarkerDefaults,
+  MarkerIconDefinition,
+  MarkerItem,
+} from "@/features/markers/domain/types";
+import {
+  MAX_MARKER_SIZE,
+  MIN_MARKER_SIZE,
+} from "@/features/markers/infrastructure/constants";
+import { createDefaultMarkerSettings } from "@/features/markers/infrastructure/helpers";
+import { featuredMarkerIcons } from "@/features/markers/infrastructure/iconRegistry";
+import { clamp } from "@/shared/geo/math";
 
 /* ────── Form state ────── */
 
@@ -21,6 +32,13 @@ export interface PosterForm {
   includeBuildings: boolean;
   includeWater: boolean;
   includeParks: boolean;
+  includeAeroway: boolean;
+  includeRail: boolean;
+  includeRoads: boolean;
+  includeRoadPath: boolean;
+  includeRoadMinorLow: boolean;
+  includeRoadOutline: boolean;
+  showMarkers: boolean;
 }
 
 /* ────── App-level state ────── */
@@ -28,18 +46,30 @@ export interface PosterForm {
 export interface PosterState {
   form: PosterForm;
   customColors: Record<string, string>;
+  markers: MarkerItem[];
+  customMarkerIcons: MarkerIconDefinition[];
+  markerDefaults: MarkerDefaults;
+  isMarkerEditorActive: boolean;
   error: string;
   isExporting: boolean;
   isLocationFocused: boolean;
   selectedLocation: SearchResult | null;
   userLocation: SearchResult | null;
+  displayNameOverrides: {
+    city: boolean;
+    country: boolean;
+  };
 }
 
 /* ────── Actions ────── */
 
 export type PosterAction =
   | { type: "SET_FIELD"; name: string; value: string | boolean }
-  | { type: "SET_FORM_FIELDS"; fields: Partial<PosterForm> }
+  | {
+      type: "SET_FORM_FIELDS";
+      fields: Partial<PosterForm>;
+      resetDisplayNameOverrides?: boolean;
+    }
   | { type: "SET_THEME"; themeId: string }
   | { type: "SET_LAYOUT"; layoutId: string; widthCm: string; heightCm: string }
   | { type: "SET_COLOR"; key: string; value: string }
@@ -51,7 +81,22 @@ export type PosterAction =
   | { type: "SET_ERROR"; error: string }
   | { type: "START_EXPORT" }
   | { type: "FINISH_EXPORT" }
-  | { type: "FAIL_EXPORT"; error: string };
+  | { type: "FAIL_EXPORT"; error: string }
+  | { type: "SET_MARKER_EDITOR_ACTIVE"; active: boolean }
+  | { type: "ADD_MARKER"; marker: MarkerItem }
+  | { type: "UPDATE_MARKER"; markerId: string; changes: Partial<MarkerItem> }
+  | { type: "REMOVE_MARKER"; markerId: string }
+  | { type: "CLEAR_MARKERS" }
+  | { type: "ADD_CUSTOM_MARKER_ICON"; icon: MarkerIconDefinition }
+  | { type: "SET_CUSTOM_MARKER_ICONS"; icons: MarkerIconDefinition[] }
+  | { type: "REMOVE_CUSTOM_MARKER_ICON"; iconId: string }
+  | { type: "CLEAR_CUSTOM_MARKER_ICONS" }
+  | {
+      type: "SET_MARKER_DEFAULTS";
+      defaults: Partial<MarkerDefaults>;
+      applyToMarkers?: boolean;
+    }
+  | { type: "RESET_MARKER_DEFAULTS" };
 
 /* ────── Reducer ────── */
 
@@ -62,17 +107,30 @@ export function posterReducer(
   switch (action.type) {
     case "SET_FIELD": {
       const nextForm = { ...state.form, [action.name]: action.value };
+      const nextDisplayNameOverrides = { ...state.displayNameOverrides };
 
       if (action.name === "location" && typeof action.value === "string") {
-        const parts = parseLocationParts(action.value);
-        nextForm.displayCity = parts.city;
-        nextForm.displayCountry = parts.country;
-        nextForm.displayContinent = "";
+        nextDisplayNameOverrides.city = false;
+        nextDisplayNameOverrides.country = false;
+      }
+
+      if (action.name === "latitude" || action.name === "longitude") {
+        nextDisplayNameOverrides.city = false;
+        nextDisplayNameOverrides.country = false;
+      }
+
+      if (action.name === "displayCity") {
+        nextDisplayNameOverrides.city = true;
+      }
+
+      if (action.name === "displayCountry") {
+        nextDisplayNameOverrides.country = true;
       }
 
       return {
         ...state,
         form: nextForm,
+        displayNameOverrides: nextDisplayNameOverrides,
         // Clear selected location when location/lat/lon field changes
         ...(["location", "latitude", "longitude"].includes(action.name)
           ? { selectedLocation: null }
@@ -84,6 +142,9 @@ export function posterReducer(
       return {
         ...state,
         form: { ...state.form, ...action.fields },
+        displayNameOverrides: action.resetDisplayNameOverrides
+          ? { city: false, country: false }
+          : state.displayNameOverrides,
       };
 
     case "SET_THEME":
@@ -118,6 +179,7 @@ export function posterReducer(
         ...state,
         selectedLocation: action.location,
         isLocationFocused: false,
+        displayNameOverrides: { city: false, country: false },
         form: {
           ...state.form,
           location: action.location.label,
@@ -139,6 +201,7 @@ export function posterReducer(
       return {
         ...state,
         selectedLocation: null,
+        displayNameOverrides: { city: false, country: false },
         form: {
           ...state.form,
           location: "",
@@ -162,6 +225,133 @@ export function posterReducer(
 
     case "FAIL_EXPORT":
       return { ...state, error: action.error, isExporting: false };
+
+    case "SET_MARKER_EDITOR_ACTIVE":
+      return { ...state, isMarkerEditorActive: action.active };
+
+    case "ADD_MARKER":
+      return {
+        ...state,
+        markers: [...state.markers, action.marker],
+      };
+
+    case "UPDATE_MARKER":
+      return {
+        ...state,
+        markers: state.markers.map((marker) =>
+          marker.id === action.markerId
+            ? {
+                ...marker,
+                ...action.changes,
+                id: marker.id,
+                size:
+                  typeof action.changes.size === "number"
+                    ? clamp(action.changes.size, MIN_MARKER_SIZE, MAX_MARKER_SIZE)
+                    : marker.size,
+              }
+            : marker,
+        ),
+      };
+
+    case "REMOVE_MARKER":
+      return {
+        ...state,
+        markers: state.markers.filter((marker) => marker.id !== action.markerId),
+      };
+
+    case "CLEAR_MARKERS":
+      return {
+        ...state,
+        markers: [],
+      };
+
+    case "ADD_CUSTOM_MARKER_ICON":
+      return {
+        ...state,
+        customMarkerIcons: [...state.customMarkerIcons, action.icon],
+      };
+
+    case "SET_CUSTOM_MARKER_ICONS":
+      return {
+        ...state,
+        customMarkerIcons: action.icons,
+      };
+
+    case "REMOVE_CUSTOM_MARKER_ICON": {
+      const fallbackIconId = featuredMarkerIcons[0]?.id ?? state.markers[0]?.iconId ?? "pin";
+      return {
+        ...state,
+        customMarkerIcons: state.customMarkerIcons.filter(
+          (icon) => icon.id !== action.iconId,
+        ),
+        markers: state.markers.map((marker) =>
+          marker.iconId === action.iconId
+            ? { ...marker, iconId: fallbackIconId }
+            : marker,
+        ),
+      };
+    }
+
+    case "CLEAR_CUSTOM_MARKER_ICONS": {
+      const fallbackIconId = featuredMarkerIcons[0]?.id ?? state.markers[0]?.iconId ?? "pin";
+      const customIconIdSet = new Set(state.customMarkerIcons.map((icon) => icon.id));
+      return {
+        ...state,
+        customMarkerIcons: [],
+        markers: state.markers.map((marker) =>
+          customIconIdSet.has(marker.iconId)
+            ? { ...marker, iconId: fallbackIconId }
+            : marker,
+        ),
+      };
+    }
+
+    case "SET_MARKER_DEFAULTS": {
+      const hasSizeUpdate =
+        typeof action.defaults.size === "number" &&
+        Number.isFinite(action.defaults.size);
+      const hasColorUpdate =
+        typeof action.defaults.color === "string" &&
+        action.defaults.color.trim().length > 0;
+      const nextDefaults = {
+        ...state.markerDefaults,
+        ...(hasSizeUpdate
+          ? {
+              size: clamp(
+                Number(action.defaults.size),
+                MIN_MARKER_SIZE,
+                MAX_MARKER_SIZE,
+              ),
+            }
+          : {}),
+        ...(hasColorUpdate ? { color: String(action.defaults.color) } : {}),
+      };
+
+      return {
+        ...state,
+        markerDefaults: nextDefaults,
+        markers: action.applyToMarkers
+          ? state.markers.map((marker) => ({
+              ...marker,
+              ...(hasSizeUpdate ? { size: nextDefaults.size } : {}),
+              ...(hasColorUpdate ? { color: nextDefaults.color } : {}),
+            }))
+          : state.markers,
+      };
+    }
+
+    case "RESET_MARKER_DEFAULTS": {
+      const defaults = createDefaultMarkerSettings();
+      return {
+        ...state,
+        markerDefaults: defaults,
+        markers: state.markers.map((marker) => ({
+          ...marker,
+          size: defaults.size,
+          color: defaults.color,
+        })),
+      };
+    }
 
     default:
       return state;

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePosterContext } from "@/features/poster/ui/PosterContext";
 import { clamp } from "@/shared/geo/math";
 import { reverseGeocodeCoordinates } from "@/core/services";
@@ -83,6 +83,8 @@ export function useMapSync() {
   const lastLocationLookupAtRef = useRef(0);
   const lastLookupCoordsRef = useRef<[number, number] | null>(null);
   const latestLocationLookupSeqRef = useRef(0);
+  const skippedCoordinateLookupRef = useRef<string>("");
+  const lastManualCoordinateLookupRef = useRef<string>("");
 
   const [containerPx, setContainerPx] = useState(DEFAULT_CONTAINER_PX);
   const effectiveContainerPx = containerPx * MAP_OVERZOOM_SCALE;
@@ -159,9 +161,13 @@ export function useMapSync() {
             type: "SET_FORM_FIELDS",
             fields: {
               location: nextLocation,
-              displayCity: nextCity,
-              displayCountry: nextCountry,
               displayContinent: nextContinent,
+              ...(!state.displayNameOverrides.city
+                ? { displayCity: nextCity }
+                : {}),
+              ...(!state.displayNameOverrides.country
+                ? { displayCountry: nextCountry }
+                : {}),
             },
           });
         })
@@ -169,7 +175,7 @@ export function useMapSync() {
           // Ignore lookup failures; coordinates stay authoritative.
         });
     },
-    [dispatch],
+    [dispatch, state.displayNameOverrides.city, state.displayNameOverrides.country],
   );
 
   const handleMove = useCallback(
@@ -186,6 +192,7 @@ export function useMapSync() {
       const bounds = resolveZoomBounds(lat, effectiveContainerPx);
       const boundedZoom = clamp(zoom, bounds.minZoom, bounds.maxZoom);
       const distance = zoomToDistance(boundedZoom, lat, effectiveContainerPx);
+      skippedCoordinateLookupRef.current = `${lat.toFixed(6)},${lon.toFixed(6)}`;
 
       dispatch({
         type: "SET_FORM_FIELDS",
@@ -201,17 +208,56 @@ export function useMapSync() {
     [dispatch, effectiveContainerPx, updateLocationFromCoordinates],
   );
 
+  useEffect(() => {
+    const latText = String(form.latitude ?? "").trim();
+    const lonText = String(form.longitude ?? "").trim();
+    if (!latText || !lonText || state.selectedLocation) {
+      return;
+    }
+
+    const lat = Number(latText);
+    const lon = Number(lonText);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      return;
+    }
+
+    const coordinateKey = `${lat.toFixed(6)},${lon.toFixed(6)}`;
+    if (skippedCoordinateLookupRef.current === coordinateKey) {
+      skippedCoordinateLookupRef.current = "";
+      return;
+    }
+    if (lastManualCoordinateLookupRef.current === coordinateKey) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      lastManualCoordinateLookupRef.current = coordinateKey;
+      updateLocationFromCoordinates(lat, lon);
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    form.latitude,
+    form.longitude,
+    state.selectedLocation,
+    updateLocationFromCoordinates,
+  ]);
+
   const flyToLocation = useCallback(
-    (lat: number, lon: number) => {
+    (lat: number, lon: number, keepCurrentZoom = false) => {
       const map = mapRef.current;
       if (!map) return;
 
       const bounds = resolveZoomBounds(lat, effectiveContainerPx);
-      const zoom = clamp(
-        distanceToZoom(formDistance, lat, effectiveContainerPx),
-        bounds.minZoom,
-        bounds.maxZoom,
-      );
+      const zoom = keepCurrentZoom
+        ? clamp(map.getZoom(), bounds.minZoom, bounds.maxZoom)
+        : clamp(
+            distanceToZoom(formDistance, lat, effectiveContainerPx),
+            bounds.minZoom,
+            bounds.maxZoom,
+          );
 
       map.flyTo({
         center: [lon, lat],

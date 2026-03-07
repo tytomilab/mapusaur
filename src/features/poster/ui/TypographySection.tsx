@@ -110,6 +110,18 @@ export default function TypographySection({
             <span className="theme-switch-track" aria-hidden="true" />
           </span>
         </label>
+        <label className="toggle-field">
+          <span>Overlay layer</span>
+          <span className="theme-switch">
+            <input
+              type="checkbox"
+              name="showMarkers"
+              checked={Boolean(form.showMarkers)}
+              onChange={onChange}
+            />
+            <span className="theme-switch-track" aria-hidden="true" />
+          </span>
+        </label>
 
         <div className="field-grid keep-two-mobile">
           <label>

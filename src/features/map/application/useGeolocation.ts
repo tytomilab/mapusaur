@@ -24,6 +24,7 @@ export function useGeolocation(dispatch: React.Dispatch<PosterAction>) {
       dispatch({ type: "SET_USER_LOCATION", location: null });
       dispatch({
         type: "SET_FORM_FIELDS",
+        resetDisplayNameOverrides: true,
         fields: {
           location: defaultLocationLabel,
           latitude: DEFAULT_LAT.toFixed(6),
@@ -48,6 +49,7 @@ export function useGeolocation(dispatch: React.Dispatch<PosterAction>) {
 
         dispatch({
           type: "SET_FORM_FIELDS",
+          resetDisplayNameOverrides: true,
           fields: {
             latitude: lat.toFixed(6),
             longitude: lon.toFixed(6),
@@ -80,6 +82,7 @@ export function useGeolocation(dispatch: React.Dispatch<PosterAction>) {
 
             dispatch({
               type: "SET_FORM_FIELDS",
+              resetDisplayNameOverrides: true,
               fields: {
                 location: label,
                 displayCity: city,

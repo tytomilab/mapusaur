@@ -17,6 +17,7 @@ import {
   isLatinScript,
   formatCityLabel,
 } from "@/features/poster/domain/textLayout";
+import { parseHex } from "@/shared/utils/color";
 
 export function drawPosterText(
   ctx: CanvasRenderingContext2D,
@@ -28,9 +29,21 @@ export function drawPosterText(
   country: string,
   fontFamily: string | undefined,
   showPosterText: boolean,
+  showOverlay: boolean,
   includeCredits: boolean = true,
 ): void {
   const textColor = theme.ui?.text || "#111111";
+  const landColor = theme.map?.land || "#808080";
+  const landRgb = parseHex(landColor);
+  const landLuma = landRgb
+    ? (0.2126 * landRgb.r + 0.7152 * landRgb.g + 0.0722 * landRgb.b) / 255
+    : 0.5;
+  const attributionColor = showOverlay
+    ? textColor
+    : landLuma < 0.52
+      ? "#f5faff"
+      : "#0e1822";
+  const attributionAlpha = showOverlay ? 0.55 : 0.9;
   const titleFontFamily = fontFamily
     ? `"${fontFamily}", "Space Grotesk", sans-serif`
     : '"Space Grotesk", sans-serif';
@@ -88,8 +101,8 @@ export function drawPosterText(
     ctx.globalAlpha = 1;
   }
 
-  ctx.fillStyle = textColor;
-  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = attributionColor;
+  ctx.globalAlpha = attributionAlpha;
   ctx.textAlign = "right";
   ctx.textBaseline = "bottom";
   ctx.font = `300 ${attributionFontSize}px ${bodyFontFamily}`;
@@ -101,8 +114,8 @@ export function drawPosterText(
   ctx.globalAlpha = 1;
 
   if (includeCredits) {
-    ctx.fillStyle = textColor;
-    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = attributionColor;
+    ctx.globalAlpha = attributionAlpha;
     ctx.textAlign = "left";
     ctx.textBaseline = "bottom";
     ctx.font = `300 ${attributionFontSize}px ${bodyFontFamily}`;

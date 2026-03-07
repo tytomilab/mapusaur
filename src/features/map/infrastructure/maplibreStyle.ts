@@ -192,6 +192,12 @@ export function generateMapStyle(
     includeBuildings?: boolean;
     includeWater?: boolean;
     includeParks?: boolean;
+    includeAeroway?: boolean;
+    includeRail?: boolean;
+    includeRoads?: boolean;
+    includeRoadPath?: boolean;
+    includeRoadMinorLow?: boolean;
+    includeRoadOutline?: boolean;
     distanceMeters?: number;
   },
 ): StyleSpecification {
@@ -206,6 +212,12 @@ export function generateMapStyle(
   const includeBuildings = options?.includeBuildings ?? true;
   const includeWater = options?.includeWater ?? true;
   const includeParks = options?.includeParks ?? true;
+  const includeAeroway = options?.includeAeroway ?? true;
+  const includeRail = options?.includeRail ?? true;
+  const includeRoads = options?.includeRoads ?? true;
+  const includeRoadPath = options?.includeRoadPath ?? true;
+  const includeRoadMinorLow = options?.includeRoadMinorLow ?? true;
+  const includeRoadOutline = options?.includeRoadOutline ?? true;
   const buildingMinZoom = resolveBuildingMinZoom(options?.distanceMeters);
 
   const minorHighCasingStops = scaledStops(
@@ -315,23 +327,27 @@ export function generateMapStyle(
           ]
         : []),
 
-      {
-        id: "aeroway",
-        source: SOURCE_ID,
-        "source-layer": "aeroway",
-        type: "fill",
-        filter: [
-          "match",
-          ["geometry-type"],
-          ["MultiPolygon", "Polygon"],
-          true,
-          false,
-        ],
-        paint: {
-          "fill-color": theme.map.aeroway,
-          "fill-opacity": 0.85,
-        },
-      },
+      ...(includeAeroway
+        ? [
+            {
+              id: "aeroway",
+              source: SOURCE_ID,
+              "source-layer": "aeroway",
+              type: "fill" as const,
+              filter: [
+                "match",
+                ["geometry-type"],
+                ["MultiPolygon", "Polygon"],
+                true,
+                false,
+              ],
+              paint: {
+                "fill-color": theme.map.aeroway,
+                "fill-opacity": 0.85,
+              },
+            },
+          ]
+        : []),
 
       ...(includeBuildings
         ? [
@@ -349,29 +365,34 @@ export function generateMapStyle(
           ]
         : []),
 
-      {
-        id: "rail",
-        source: SOURCE_ID,
-        "source-layer": "transportation",
-        type: "line",
-        filter: lineClassFilter(MAP_RAIL_CLASSES),
-        paint: {
-          "line-color": theme.map.rail,
-          "line-width": widthExpr(railWidthStops),
-          "line-opacity": opacityExpr([
-            [0, 0.56],
-            [12, 0.62],
-            [18, 0.72],
-          ]),
-          "line-dasharray": [2, 1.6],
-        },
-        layout: {
-          "line-cap": "round",
-          "line-join": "round",
-        },
-      },
+      ...(includeRail
+        ? [
+            {
+              id: "rail",
+              source: SOURCE_ID,
+              "source-layer": "transportation",
+              type: "line" as const,
+              filter: lineClassFilter(MAP_RAIL_CLASSES),
+              paint: {
+                "line-color": theme.map.rail,
+                "line-width": widthExpr(railWidthStops),
+                "line-opacity": opacityExpr([
+                  [0, 0.56],
+                  [12, 0.62],
+                  [18, 0.72],
+                ]),
+                "line-dasharray": [2, 1.6],
+              },
+              layout: {
+                "line-cap": "round",
+                "line-join": "round",
+              },
+            },
+          ]
+        : []),
 
-      {
+      ...(includeRoads
+        ? [{
         id: "road-minor-overview-high",
         source: SOURCE_ID,
         "source-layer": "transportation",
@@ -426,11 +447,13 @@ export function generateMapStyle(
         paint: {
           "line-color": roadMinorLowColor,
           "line-width": widthExpr(roadMinorOverviewLowWidthStops),
-          "line-opacity": opacityExpr([
-            [0, 0.26],
-            [8, 0.34],
-            [12, 0],
-          ]),
+          "line-opacity": includeRoadMinorLow
+            ? opacityExpr([
+                [0, 0.26],
+                [8, 0.34],
+                [12, 0],
+              ])
+            : 0,
         },
         layout: {
           "line-cap": "round",
@@ -448,11 +471,13 @@ export function generateMapStyle(
         paint: {
           "line-color": roadPathColor,
           "line-width": widthExpr(roadPathOverviewWidthStops),
-          "line-opacity": opacityExpr([
-            [5, 0.45],
-            [9, 0.58],
-            [12, 0],
-          ]),
+          "line-opacity": includeRoadPath
+            ? opacityExpr([
+                [5, 0.45],
+                [9, 0.58],
+                [12, 0],
+              ])
+            : 0,
         },
         layout: {
           "line-cap": "round",
@@ -469,7 +494,7 @@ export function generateMapStyle(
         paint: {
           "line-color": roadOutlineColor,
           "line-width": widthExpr(roadMajorCasingStops),
-          "line-opacity": 0.95,
+          "line-opacity": includeRoadOutline ? 0.95 : 0,
         },
         layout: {
           "line-cap": "round",
@@ -486,11 +511,13 @@ export function generateMapStyle(
         paint: {
           "line-color": roadOutlineColor,
           "line-width": widthExpr(roadMinorHighCasingStops),
-          "line-opacity": opacityExpr([
-            [6, 0.72],
-            [12, 0.85],
-            [18, 0.92],
-          ]),
+          "line-opacity": includeRoadOutline
+            ? opacityExpr([
+                [6, 0.72],
+                [12, 0.85],
+                [18, 0.92],
+              ])
+            : 0,
         },
         layout: {
           "line-cap": "round",
@@ -507,11 +534,13 @@ export function generateMapStyle(
         paint: {
           "line-color": roadOutlineColor,
           "line-width": widthExpr(roadMinorMidCasingStops),
-          "line-opacity": opacityExpr([
-            [6, 0.42],
-            [12, 0.56],
-            [18, 0.66],
-          ]),
+          "line-opacity": includeRoadOutline
+            ? opacityExpr([
+                [6, 0.42],
+                [12, 0.56],
+                [18, 0.66],
+              ])
+            : 0,
         },
         layout: {
           "line-cap": "round",
@@ -528,11 +557,13 @@ export function generateMapStyle(
         paint: {
           "line-color": roadOutlineColor,
           "line-width": widthExpr(roadPathCasingStops),
-          "line-opacity": opacityExpr([
-            [8, 0.62],
-            [12, 0.72],
-            [18, 0.85],
-          ]),
+          "line-opacity": includeRoadOutline && includeRoadPath
+            ? opacityExpr([
+                [8, 0.62],
+                [12, 0.72],
+                [18, 0.85],
+              ])
+            : 0,
         },
         layout: {
           "line-cap": "round",
@@ -607,11 +638,13 @@ export function generateMapStyle(
         paint: {
           "line-color": roadMinorLowColor,
           "line-width": widthExpr(roadMinorDetailLowWidthStops),
-          "line-opacity": opacityExpr([
-            [6, 0.34],
-            [10, 0.46],
-            [18, 0.58],
-          ]),
+          "line-opacity": includeRoadMinorLow
+            ? opacityExpr([
+                [6, 0.34],
+                [10, 0.46],
+                [18, 0.58],
+              ])
+            : 0,
         },
         layout: {
           "line-cap": "round",
@@ -628,17 +661,20 @@ export function generateMapStyle(
         paint: {
           "line-color": roadPathColor,
           "line-width": widthExpr(roadPathDetailWidthStops),
-          "line-opacity": opacityExpr([
-            [8, 0.7],
-            [12, 0.82],
-            [18, 0.95],
-          ]),
+          "line-opacity": includeRoadPath
+            ? opacityExpr([
+                [8, 0.7],
+                [12, 0.82],
+                [18, 0.95],
+              ])
+            : 0,
         },
         layout: {
           "line-cap": "round",
           "line-join": "round",
         },
-      },
+      }]
+        : []),
     ],
   };
 }

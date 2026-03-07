@@ -8,6 +8,7 @@ import {
 import { usePosterContext } from "./PosterContext";
 import { useMapSync } from "@/features/map/application/useMapSync";
 import MapPreview from "@/features/map/ui/MapPreview";
+import MarkerOverlay from "@/features/markers/ui/MarkerOverlay";
 import GradientFades from "./GradientFades";
 import PosterTextOverlay from "./PosterTextOverlay";
 import {
@@ -49,6 +50,8 @@ const DEFAULT_LOCATION_LABEL =
 export default function PreviewPanel() {
   const { state, dispatch, effectiveTheme, mapStyle, mapRef } = usePosterContext();
   const { form, selectedLocation, userLocation } = state;
+  const hasVisibleMarkers = form.showMarkers && state.markers.length > 0;
+  const isMarkerEditorActive = state.isMarkerEditorActive;
   const {
     mapCenter,
     mapZoom,
@@ -98,6 +101,14 @@ export default function PreviewPanel() {
       map.off("rotate", syncBearing);
     };
   }, [mapRef]);
+
+  useEffect(() => {
+    if (!isMarkerEditorActive) {
+      return;
+    }
+    setIsEditing(false);
+    setIsRotationEnabled(false);
+  }, [isMarkerEditorActive]);
 
   const widthCm = Number(form.width) || DEFAULT_POSTER_WIDTH_CM;
   const heightCm = Number(form.height) || DEFAULT_POSTER_HEIGHT_CM;
@@ -214,6 +225,7 @@ export default function PreviewPanel() {
     ) => {
       dispatch({
         type: "SET_FORM_FIELDS",
+        resetDisplayNameOverrides: true,
         fields: {
           ...(includeCoordinates
             ? {
@@ -256,6 +268,7 @@ export default function PreviewPanel() {
         dispatch({ type: "SET_USER_LOCATION", location: resolved });
         dispatch({
           type: "SET_FORM_FIELDS",
+          resetDisplayNameOverrides: true,
           fields: {
             displayCity: String(resolved.city ?? "").trim() || DEFAULT_CITY,
             displayCountry: String(resolved.country ?? "").trim() || DEFAULT_COUNTRY,
@@ -272,6 +285,17 @@ export default function PreviewPanel() {
     userLocation,
     dispatch,
   ]);
+
+  const handleMarkerPositionChange = useCallback(
+    (markerId: string, lat: number, lon: number) => {
+      dispatch({
+        type: "UPDATE_MARKER",
+        markerId,
+        changes: { lat, lon },
+      });
+    },
+    [dispatch],
+  );
 
   return (
     <section className="preview-panel">
@@ -291,7 +315,7 @@ export default function PreviewPanel() {
             center={mapCenter}
             zoom={mapZoom}
             mapRef={mapRef}
-            interactive={isEditing}
+            interactive={isEditing && !isMarkerEditorActive}
             allowRotation={isEditing && isRotationEnabled}
             minZoom={mapMinZoom}
             maxZoom={mapMaxZoom}
@@ -299,7 +323,16 @@ export default function PreviewPanel() {
             onMove={handleMove}
             onMoveEnd={handleMoveEnd}
           />
-          <GradientFades color={effectiveTheme.ui.bg} />
+          {form.showMarkers ? <GradientFades color={effectiveTheme.ui.bg} /> : null}
+          {hasVisibleMarkers ? (
+            <MarkerOverlay
+              markers={state.markers}
+              customIcons={state.customMarkerIcons}
+              mapRef={mapRef}
+              isMarkerEditMode={isMarkerEditorActive}
+              onMarkerPositionChange={handleMarkerPositionChange}
+            />
+          ) : null}
           <PosterTextOverlay
             city={cityLabel}
             country={countryLabel}
@@ -307,8 +340,10 @@ export default function PreviewPanel() {
             lon={formLon}
             fontFamily={form.fontFamily}
             textColor={effectiveTheme.ui.text}
+            landColor={effectiveTheme.map.land}
             showPosterText={form.showPosterText}
             includeCredits={form.includeCredits}
+            showOverlay={form.showMarkers}
           />
         </div>
       </div>
@@ -331,7 +366,12 @@ export default function PreviewPanel() {
                   type="button"
                   className="map-control-btn map-control-btn--primary"
                   onClick={handleStartEditing}
-                  title="Unlock map editing"
+                  title={
+                    isMarkerEditorActive
+                      ? "Close marker editor to unlock map editing"
+                      : "Unlock map editing"
+                  }
+                  disabled={isMarkerEditorActive}
                 >
                   <EditIcon />
                   <span>Edit Map</span>
@@ -339,7 +379,9 @@ export default function PreviewPanel() {
               </div>
               <p className="map-control-hint">
                 <LockIcon className="map-control-hint-icon" />
-                {LOCKED_HINT}
+                {isMarkerEditorActive
+                  ? "Map editing is disabled while marker editor is open."
+                  : LOCKED_HINT}
               </p>
             </>
           ) : (

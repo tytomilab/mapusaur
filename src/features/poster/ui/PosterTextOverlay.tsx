@@ -15,6 +15,7 @@ import {
   ATTRIBUTION_FONT_BASE_PX,
   formatCityLabel,
 } from "@/features/poster/domain/textLayout";
+import { parseHex } from "@/shared/utils/color";
 
 interface PosterTextOverlayProps {
   city: string;
@@ -23,8 +24,10 @@ interface PosterTextOverlayProps {
   lon: number;
   fontFamily: string;
   textColor: string;
+  landColor: string;
   showPosterText: boolean;
   includeCredits: boolean;
+  showOverlay: boolean;
 }
 
 /**
@@ -39,8 +42,10 @@ export default function PosterTextOverlay({
   lon,
   fontFamily,
   textColor,
+  landColor,
   showPosterText,
   includeCredits,
+  showOverlay,
 }: PosterTextOverlayProps) {
   const toCqMin = (px: number) => (px / TEXT_DIMENSION_REFERENCE_PX) * 100;
 
@@ -64,6 +69,16 @@ export default function PosterTextOverlay({
   const countryFontSize = `${toCqMin(COUNTRY_FONT_BASE_PX)}cqmin`;
   const coordsFontSize = `${toCqMin(COORDS_FONT_BASE_PX)}cqmin`;
   const attributionFontSize = `${toCqMin(ATTRIBUTION_FONT_BASE_PX)}cqmin`;
+  const landRgb = parseHex(landColor);
+  const landLuma = landRgb
+    ? (0.2126 * landRgb.r + 0.7152 * landRgb.g + 0.0722 * landRgb.b) / 255
+    : 0.5;
+  const attributionColor = showOverlay
+    ? textColor
+    : landLuma < 0.52
+      ? "#f5faff"
+      : "#0e1822";
+  const attributionOpacity = showOverlay ? 0.55 : 0.9;
 
   return (
     <div className="poster-text-overlay" style={{ color: textColor }}>
@@ -113,6 +128,8 @@ export default function PosterTextOverlay({
         className="poster-attribution"
         style={{
           fontFamily: bodyFont,
+          color: attributionColor,
+          opacity: attributionOpacity,
           fontSize: attributionFontSize,
           bottom: `${TEXT_EDGE_MARGIN_RATIO * 100}%`,
           right: `${TEXT_EDGE_MARGIN_RATIO * 100}%`,
@@ -126,6 +143,8 @@ export default function PosterTextOverlay({
           className="poster-credits"
           style={{
             fontFamily: bodyFont,
+            color: attributionColor,
+            opacity: attributionOpacity,
             fontSize: attributionFontSize,
             bottom: `${TEXT_EDGE_MARGIN_RATIO * 100}%`,
             left: `${TEXT_EDGE_MARGIN_RATIO * 100}%`,
