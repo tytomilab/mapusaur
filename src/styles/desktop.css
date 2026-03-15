@@ -28,8 +28,7 @@
 .desktop-export-fab,
 .desktop-install-badge,
 .desktop-settings-deco,
-.desktop-left-panel,
-.poster-ghost-layer {
+.desktop-left-panel {
   display: none;
 }
 
@@ -72,11 +71,12 @@
 
   /* ── Desktop Header ── */
 
-  .desktop-header {
+  .general-header {
     grid-area: dheader;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin: 0;
     padding: 0 20px;
     background: rgba(9, 16, 24, 0.97);
     border-bottom: 1px solid rgba(146, 176, 200, 0.12);
@@ -123,27 +123,21 @@
     color: rgba(184, 212, 232, 0.5);
   }
 
-  .desktop-about-btn {
+  .general-header-actions {
     margin-left: auto;
-    padding: 7px 14px;
-    border: 1px solid rgba(146, 176, 200, 0.28);
-    border-radius: 9px;
-    background: transparent;
-    color: rgba(195, 220, 240, 0.8);
-    font-family: "Spline Sans Mono", monospace;
-    font-size: 0.76rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    cursor: pointer;
-    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .general-header-text-btn {
     transition:
       background 0.15s,
       border-color 0.15s,
       color 0.15s;
   }
 
-  .desktop-about-btn:hover {
+  .general-header-text-btn:hover:not(:disabled) {
     transform: none;
     filter: none;
     background: rgba(94, 174, 212, 0.1);
@@ -151,31 +145,12 @@
     color: #c8e8f8;
   }
 
-  .desktop-install-btn {
-    padding: 7px 14px;
-    border: 1px solid rgba(146, 176, 200, 0.28);
-    border-radius: 9px;
-    background: transparent;
-    color: rgba(195, 220, 240, 0.8);
-    font-family: "Spline Sans Mono", monospace;
-    font-size: 0.76rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition:
-      background 0.15s,
-      border-color 0.15s,
-      color 0.15s;
+  .general-header-btn-label {
+    display: inline;
   }
 
-  .desktop-install-btn:hover {
-    transform: none;
-    filter: none;
-    background: rgba(94, 174, 212, 0.1);
-    border-color: rgba(94, 174, 212, 0.5);
-    color: #c8e8f8;
+  .general-header-btn-icon {
+    display: none;
   }
 
   /* ── Desktop vertical nav bar ── */
@@ -545,7 +520,7 @@
     overflow-y: auto;
     overflow-x: hidden;
     pointer-events: auto;
-    background: rgba(10, 20, 31, 0.96);
+    background: rgba(11, 20, 30, 0.98);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border: 1px solid rgba(146, 176, 200, 0.14);
@@ -567,7 +542,7 @@
   .desktop-settings-slide .settings-panel {
     border: none;
     border-radius: 0;
-    background: transparent;
+    background: rgba(11, 20, 30, 0.98);
     box-shadow: none;
     min-width: unset;
     width: 100%;
@@ -782,6 +757,12 @@
 
   .app-header {
     display: none;
+  }
+
+  .mobile-location-row-wrap,
+  .mobile-export-fab-trigger,
+  .mobile-export-modal-backdrop {
+    display: none !important;
   }
 
   .app-footer {

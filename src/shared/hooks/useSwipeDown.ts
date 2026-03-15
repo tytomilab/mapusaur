@@ -7,7 +7,13 @@ import { useRef } from "react";
  *
  * Scrollable content inside the sheet is unaffected.
  */
-export function useSwipeDown(onClose: () => void, threshold = 80) {
+export function useSwipeDown(
+  onClose: () => void,
+  threshold = 80,
+  options?: {
+    onExpand?: () => void;
+  },
+) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
   const startY = useRef(0);
@@ -18,9 +24,10 @@ export function useSwipeDown(onClose: () => void, threshold = 80) {
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    const delta = Math.max(0, e.touches[0].clientY - startY.current);
-    if (sheetRef.current)
+    const delta = e.touches[0].clientY - startY.current;
+    if (sheetRef.current) {
       sheetRef.current.style.transform = `translateY(${delta}px)`;
+    }
   };
 
   const onTouchEnd = (e: React.TouchEvent) => {
@@ -29,7 +36,15 @@ export function useSwipeDown(onClose: () => void, threshold = 80) {
       sheetRef.current.style.transition = "";
       sheetRef.current.style.transform = "";
     }
-    if (delta > threshold) onClose();
+    const expandThreshold = 60;
+    if (delta < -expandThreshold) {
+      options?.onExpand?.();
+      return;
+    }
+
+    if (delta > threshold) {
+      onClose();
+    }
   };
 
   const handleProps = { onTouchStart, onTouchMove, onTouchEnd };

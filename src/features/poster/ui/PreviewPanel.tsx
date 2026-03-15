@@ -135,6 +135,20 @@ export default function PreviewPanel() {
   const [mapBearing, setMapBearing] = useState(0);
   const [isRotationEnabled, setIsRotationEnabled] = useState(false);
   const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+    const syncViewport = () => setIsMobileViewport(mediaQuery.matches);
+    syncViewport();
+    mediaQuery.addEventListener("change", syncViewport);
+
+    return () => {
+      mediaQuery.removeEventListener("change", syncViewport);
+    };
+  }, []);
 
   useEffect(() => {
     const element = frameRef.current;
@@ -600,35 +614,37 @@ export default function PreviewPanel() {
                     </span>
                   </button>
                 </div>
-                <div className="map-control-group map-control-slider-row">
-                  <button
-                    type="button"
-                    className="map-control-btn"
-                    onClick={handleZoomOut}
-                    title="Zoom out"
-                  >
-                    <MinusIcon />
-                  </button>
-                  <input
-                    className="map-control-slider"
-                    type="range"
-                    min={mapMinZoom}
-                    max={mapMaxZoom}
-                    step={0.1}
-                    value={mapZoom}
-                    onChange={handleZoomSliderChange}
-                    aria-label="Zoom level"
-                  />
-                  <button
-                    type="button"
-                    className="map-control-btn"
-                    onClick={handleZoomIn}
-                    title="Zoom in"
-                  >
-                    <PlusIcon />
-                  </button>
-                </div>
-                {isRotationEnabled ? (
+                {!isMobileViewport ? (
+                  <div className="map-control-group map-control-slider-row">
+                    <button
+                      type="button"
+                      className="map-control-btn"
+                      onClick={handleZoomOut}
+                      title="Zoom out"
+                    >
+                      <MinusIcon />
+                    </button>
+                    <input
+                      className="map-control-slider"
+                      type="range"
+                      min={mapMinZoom}
+                      max={mapMaxZoom}
+                      step={0.1}
+                      value={mapZoom}
+                      onChange={handleZoomSliderChange}
+                      aria-label="Zoom level"
+                    />
+                    <button
+                      type="button"
+                      className="map-control-btn"
+                      onClick={handleZoomIn}
+                      title="Zoom in"
+                    >
+                      <PlusIcon />
+                    </button>
+                  </div>
+                ) : null}
+                {!isMobileViewport && isRotationEnabled ? (
                   <div className="map-control-group map-control-slider-row">
                     <button
                       type="button"

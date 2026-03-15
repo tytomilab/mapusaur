@@ -1,8 +1,6 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { usePosterContext } from "@/features/poster/ui/PosterContext";
 import { useFormHandlers } from "@/features/poster/application/useFormHandlers";
-import { useExport } from "@/features/export/application/useExport";
-import SupportModal from "@/features/export/ui/SupportModal";
 import { useLocationAutocomplete } from "@/features/location/application/useLocationAutocomplete";
 import { useMapSync } from "@/features/map/application/useMapSync";
 
@@ -12,15 +10,12 @@ import LayersSection from "@/features/map/ui/LayersSection";
 import MarkersSection from "@/features/markers/ui/MarkersSection";
 import TypographySection from "@/features/poster/ui/TypographySection";
 import {
-  DownloadIcon,
-  LoaderIcon,
   LocationIcon,
   ThemeIcon,
   LayoutIcon,
   LayersIcon,
   MarkersIcon,
   StyleIcon,
-  ExportIcon,
   ChevronDownIcon,
 } from "@/shared/ui/Icons";
 
@@ -42,8 +37,7 @@ type SectionId =
   | "layout"
   | "layers"
   | "markers"
-  | "style"
-  | "export";
+  | "style";
 
 const accordionSections: {
   id: SectionId;
@@ -56,7 +50,6 @@ const accordionSections: {
   { id: "layers", label: "Layers", Icon: LayersIcon },
   { id: "markers", label: "Markers", Icon: MarkersIcon },
   { id: "style", label: "Style", Icon: StyleIcon },
-  { id: "export", label: "Export", Icon: ExportIcon },
 ];
 
 export default function SettingsPanel() {
@@ -73,13 +66,6 @@ export default function SettingsPanel() {
     setLocationFocused,
     handleCreditsChange,
   } = useFormHandlers();
-  const {
-    handleDownloadPng,
-    handleDownloadPdf,
-    handleDownloadSvg,
-    supportPrompt,
-    dismissSupportPrompt,
-  } = useExport();
   const { locationSuggestions, isLocationSearching } = useLocationAutocomplete(
     state.form.location,
     state.isLocationFocused,
@@ -90,15 +76,11 @@ export default function SettingsPanel() {
   const [isLocatingUser, setIsLocatingUser] = useState(false);
   const [locationPermissionMessage, setLocationPermissionMessage] =
     useState("");
-  const [activeExportFormat, setActiveExportFormat] = useState<
-    "png" | "pdf" | "svg" | null
-  >(null);
   const [openSections, setOpenSections] = useState<Set<SectionId>>(
-    new Set(["location", "theme", "layout", "style", "export"]),
+    new Set(["location", "theme", "layout", "style"]),
   );
 
   const isAuxEditorActive = isColorEditorActive;
-
   const showLocationSuggestions =
     state.isLocationFocused && locationSuggestions.length > 0;
 
@@ -114,7 +96,6 @@ export default function SettingsPanel() {
     });
   };
 
-  /** When user selects a location, fly the map there. */
   const onLocationSelect = (location: SearchResult) => {
     handleLocationSelect(location);
     flyToLocation(location.lat, location.lon);
@@ -180,7 +161,6 @@ export default function SettingsPanel() {
         },
         (error) => {
           if (!retry) {
-            // Retry once per click to re-trigger permission request where the browser allows it.
             requestPosition(true);
           } else {
             if (error?.code === 1) {
@@ -207,51 +187,15 @@ export default function SettingsPanel() {
     requestPosition(false);
   };
 
-  const exportButtons = [
-    {
-      id: "png",
-      label: "PNG",
-      className: "generate-btn download-format-btn",
-      onClick: () => {
-        setActiveExportFormat("png");
-        handleDownloadPng();
-      },
-    },
-    {
-      id: "pdf",
-      label: "PDF",
-      className: "ghost download-format-btn",
-      onClick: () => {
-        setActiveExportFormat("pdf");
-        handleDownloadPdf();
-      },
-    },
-    {
-      id: "svg",
-      label: "SVG",
-      className: "download-format-btn export-map-btn",
-      onClick: () => {
-        setActiveExportFormat("svg");
-        handleDownloadSvg();
-      },
-    },
-  ] as const;
-
-  useEffect(() => {
-    if (!state.isExporting) {
-      setActiveExportFormat(null);
-    }
-  }, [state.isExporting]);
-
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    // No generation step needed — the poster is always live
   };
 
   return (
     <form className="settings-panel" onSubmit={onSubmit}>
-      {/* ── Location ── */}
-      <div className={`mobile-section mobile-section--location accordion-item${openSections.has("location") ? " accordion-item--open" : ""}`}>
+      <div
+        className={`mobile-section mobile-section--location accordion-item${openSections.has("location") ? " accordion-item--open" : ""}`}
+      >
         <AccordionHeader
           sectionId="location"
           label={accordionSections[0].label}
@@ -263,7 +207,7 @@ export default function SettingsPanel() {
           className={`accordion-body${openSections.has("location") ? " is-open" : ""}`}
         >
           <div className="accordion-body-inner">
-            {!isColorEditorActive && (
+            {!isColorEditorActive ? (
               <LocationSection
                 form={state.form}
                 onChange={handleChange}
@@ -278,13 +222,14 @@ export default function SettingsPanel() {
                 isLocatingUser={isLocatingUser}
                 locationPermissionMessage={locationPermissionMessage}
               />
-            )}
+            ) : null}
           </div>
         </div>
       </div>
 
-      {/* ── Theme ── */}
-      <div className={`mobile-section mobile-section--theme-settings accordion-item${openSections.has("theme") ? " accordion-item--open" : ""}`}>
+      <div
+        className={`mobile-section mobile-section--theme-settings accordion-item${openSections.has("theme") ? " accordion-item--open" : ""}`}
+      >
         <AccordionHeader
           sectionId="theme"
           label={accordionSections[1].label}
@@ -296,7 +241,7 @@ export default function SettingsPanel() {
           className={`accordion-body${openSections.has("theme") ? " is-open" : ""}`}
         >
           <div className="accordion-body-inner">
-            {!isColorEditorActive && (
+            {!isColorEditorActive ? (
               <MapSettingsSection
                 form={state.form}
                 onChange={handleChange}
@@ -313,13 +258,14 @@ export default function SettingsPanel() {
                 onResetColors={handleResetColors}
                 onColorEditorActiveChange={setIsColorEditorActive}
               />
-            )}
+            ) : null}
           </div>
         </div>
       </div>
 
-      {/* ── Layout ── */}
-      <div className={`mobile-section mobile-section--layout-settings accordion-item${openSections.has("layout") ? " accordion-item--open" : ""}`}>
+      <div
+        className={`mobile-section mobile-section--layout-settings accordion-item${openSections.has("layout") ? " accordion-item--open" : ""}`}
+      >
         <AccordionHeader
           sectionId="layout"
           label={accordionSections[2].label}
@@ -331,7 +277,7 @@ export default function SettingsPanel() {
           className={`accordion-body${openSections.has("layout") ? " is-open" : ""}`}
         >
           <div className="accordion-body-inner">
-            {!isColorEditorActive && (
+            {!isColorEditorActive ? (
               <MapSettingsSection
                 form={state.form}
                 onChange={handleChange}
@@ -348,13 +294,14 @@ export default function SettingsPanel() {
                 onResetColors={handleResetColors}
                 onColorEditorActiveChange={setIsColorEditorActive}
               />
-            )}
+            ) : null}
           </div>
         </div>
       </div>
 
-      {/* ── Layers ── */}
-      <div className={`mobile-section mobile-section--layers accordion-item${openSections.has("layers") ? " accordion-item--open" : ""}`}>
+      <div
+        className={`mobile-section mobile-section--layers accordion-item${openSections.has("layers") ? " accordion-item--open" : ""}`}
+      >
         <AccordionHeader
           sectionId="layers"
           label={accordionSections[3].label}
@@ -366,7 +313,7 @@ export default function SettingsPanel() {
           className={`accordion-body${openSections.has("layers") ? " is-open" : ""}`}
         >
           <div className="accordion-body-inner">
-            {!isAuxEditorActive && (
+            {!isAuxEditorActive ? (
               <LayersSection
                 form={state.form}
                 onChange={handleChange}
@@ -374,13 +321,14 @@ export default function SettingsPanel() {
                 maxPosterCm={MAX_POSTER_CM}
                 onNumericFieldBlur={handleNumericFieldBlur}
               />
-            )}
+            ) : null}
           </div>
         </div>
       </div>
 
-      {/* ── Markers ── */}
-      <div className={`mobile-section mobile-section--markers accordion-item${openSections.has("markers") ? " accordion-item--open" : ""}`}>
+      <div
+        className={`mobile-section mobile-section--markers accordion-item${openSections.has("markers") ? " accordion-item--open" : ""}`}
+      >
         <AccordionHeader
           sectionId="markers"
           label={accordionSections[4].label}
@@ -392,13 +340,14 @@ export default function SettingsPanel() {
           className={`accordion-body${openSections.has("markers") ? " is-open" : ""}`}
         >
           <div className="accordion-body-inner">
-            {!isColorEditorActive && <MarkersSection />}
+            {!isColorEditorActive ? <MarkersSection /> : null}
           </div>
         </div>
       </div>
 
-      {/* ── Style ── */}
-      <div className={`mobile-section mobile-section--style accordion-item${openSections.has("style") ? " accordion-item--open" : ""}`}>
+      <div
+        className={`mobile-section mobile-section--style accordion-item${openSections.has("style") ? " accordion-item--open" : ""}`}
+      >
         <AccordionHeader
           sectionId="style"
           label={accordionSections[5].label}
@@ -410,73 +359,19 @@ export default function SettingsPanel() {
           className={`accordion-body${openSections.has("style") ? " is-open" : ""}`}
         >
           <div className="accordion-body-inner">
-            {!isAuxEditorActive && (
+            {!isAuxEditorActive ? (
               <TypographySection
                 form={state.form}
                 onChange={handleChange}
                 fontOptions={FONT_OPTIONS}
                 onCreditsChange={handleCreditsChange}
               />
-            )}
+            ) : null}
           </div>
         </div>
       </div>
 
-      {/* ── Export ── */}
-      <div className={`mobile-section mobile-section--export accordion-item${openSections.has("export") ? " accordion-item--open" : ""}`}>
-        <AccordionHeader
-          sectionId="export"
-          label={accordionSections[6].label}
-          Icon={accordionSections[6].Icon}
-          isOpen={openSections.has("export")}
-          onToggle={toggleSection}
-        />
-        <div
-          className={`accordion-body${openSections.has("export") ? " is-open" : ""}`}
-        >
-          <div className="accordion-body-inner">
-            {!isAuxEditorActive && (
-              <div className="action-row">
-                <div className="download-row">
-                  {exportButtons.map((button) => (
-                    <button
-                      key={button.id}
-                      type="button"
-                      className={button.className}
-                      onClick={button.onClick}
-                      disabled={state.isExporting}
-                    >
-                      {state.isExporting && activeExportFormat === button.id ? (
-                        <LoaderIcon className="download-btn-icon is-spinning" />
-                      ) : (
-                        <DownloadIcon className="download-btn-icon" />
-                      )}
-                      <span>
-                        {state.isExporting && activeExportFormat === button.id
-                          ? "Exporting..."
-                          : button.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {!isAuxEditorActive && state.error && (
-              <p className="error">{state.error}</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {supportPrompt ? (
-        <SupportModal
-          posterNumber={supportPrompt.posterNumber}
-          isFirst={supportPrompt.isFirst}
-          onClose={dismissSupportPrompt}
-          titleId="settings-export-support-modal-title"
-        />
-      ) : null}
+      {!isAuxEditorActive && state.error ? <p className="error">{state.error}</p> : null}
     </form>
   );
 }
@@ -507,5 +402,3 @@ function AccordionHeader({
     </button>
   );
 }
-
-

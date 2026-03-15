@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { AppProviders } from "@/core/AppProviders";
-import AppHeader from "@/shared/ui/AppHeader";
-import DesktopHeader from "@/shared/ui/DesktopHeader";
+import GeneralHeader from "@/shared/ui/GeneralHeader";
 import DesktopNavBar from "@/shared/ui/DesktopNavBar";
 import AboutModal from "@/shared/ui/AboutModal";
 import FooterNote from "@/shared/ui/FooterNote";
 import SettingsPanel from "@/features/poster/ui/SettingsPanel";
 import PreviewPanel from "@/features/poster/ui/PreviewPanel";
-import InfoPanel from "@/shared/ui/InfoPanel";
 import AnnouncementModal from "@/features/updates/ui/AnnouncementModal";
 import MobileNavBar, { type MobileTab } from "@/shared/ui/MobileNavBar";
 import DesktopExportFab from "@/features/export/ui/DesktopExportFab";
+import MobileExportFab from "@/features/export/ui/MobileExportFab";
 import DesktopLocationBar from "@/shared/ui/DesktopLocationBar";
 import { useSwipeDown } from "@/shared/hooks/useSwipeDown";
 
@@ -21,7 +20,10 @@ function SettingsDrawer({
   mobileTab: MobileTab;
   onClose: () => void;
 }) {
-  const { sheetRef, handleRef, handleProps } = useSwipeDown(onClose);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const { sheetRef, handleRef, handleProps } = useSwipeDown(onClose, 80, {
+    onExpand: () => setIsExpanded(true),
+  });
 
   return (
     <div className="mobile-drawer" role="dialog" aria-label="Settings">
@@ -31,7 +33,7 @@ function SettingsDrawer({
         aria-hidden="true"
       />
       <div
-        className="mobile-drawer-sheet"
+        className={`mobile-drawer-sheet${isExpanded ? " is-expanded" : ""}`}
         ref={sheetRef}
         data-mobile-tab={mobileTab}
       >
@@ -51,8 +53,10 @@ function SettingsDrawer({
 
 function AppShell() {
   // Mobile state
-  const [mobileTab, setMobileTab] = useState<MobileTab>("location");
+  const [mobileTab, setMobileTab] = useState<MobileTab>("theme");
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [mobileLocationRowVisible, setMobileLocationRowVisible] =
+    useState(true);
 
   // Desktop state
   const [desktopTab, setDesktopTab] = useState<MobileTab>("theme");
@@ -62,6 +66,12 @@ function AppShell() {
   const [aboutOpen, setAboutOpen] = useState(false);
 
   const handleMobileTabChange = (tab: MobileTab) => {
+    if (tab === "location") {
+      setMobileLocationRowVisible((isVisible) => !isVisible);
+      setMobileDrawerOpen(false);
+      return;
+    }
+
     if (tab === mobileTab && mobileDrawerOpen) {
       setMobileDrawerOpen(false);
     } else {
@@ -85,10 +95,8 @@ function AppShell() {
       data-mobile-tab={mobileTab}
       data-desktop-tab={desktopTab}
     >
-      {/* ── Desktop header (hidden on mobile) ── */}
-      <DesktopHeader onAboutOpen={() => setAboutOpen(true)} />
+      <GeneralHeader onAboutOpen={() => setAboutOpen(true)} />
 
-      {/* ── Desktop vertical nav bar (hidden on mobile) ── */}
       <DesktopNavBar
         activeTab={desktopTab}
         panelOpen={desktopPanelOpen}
@@ -99,9 +107,14 @@ function AppShell() {
         }
       />
 
-      {/* ── Desktop left panel: floating location bar + settings slide ── */}
       <div
         className={`desktop-location-row-wrap${desktopLocationRowVisible ? "" : " is-hidden"}`}
+      >
+        <DesktopLocationBar />
+      </div>
+
+      <div
+        className={`mobile-location-row-wrap${mobileLocationRowVisible ? "" : " is-hidden"}`}
       >
         <DesktopLocationBar />
       </div>
@@ -114,38 +127,28 @@ function AppShell() {
         </div>
       </div>
 
-      {/* ── Mobile header (hidden on desktop) ── */}
-      <AppHeader />
-
-      {/* ── Preview panel — shared between desktop and mobile ── */}
       <PreviewPanel />
 
-      {/* ── Mobile persistent footer (hidden on desktop) ── */}
-      <div className="mobile-persistent-footer">
-        <InfoPanel />
-      </div>
-
-      {/* ── Mobile settings drawer ── */}
-      {mobileDrawerOpen && (
+      {mobileDrawerOpen ? (
         <SettingsDrawer
           mobileTab={mobileTab}
           onClose={() => setMobileDrawerOpen(false)}
         />
-      )}
+      ) : null}
 
-      {/* ── Mobile nav bar ── */}
       <MobileNavBar
         activeTab={mobileTab}
         drawerOpen={mobileDrawerOpen}
+        isLocationVisible={mobileLocationRowVisible}
         onTabChange={handleMobileTabChange}
       />
+      <MobileExportFab />
 
       <FooterNote />
       <AnnouncementModal />
 
-      {/* ── Desktop-only overlays ── */}
       <DesktopExportFab />
-      {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
+      {aboutOpen ? <AboutModal onClose={() => setAboutOpen(false)} /> : null}
     </div>
   );
 }
@@ -157,5 +160,3 @@ export default function App() {
     </AppProviders>
   );
 }
-
-
