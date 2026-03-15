@@ -266,7 +266,7 @@
     width: 356px;
     z-index: 45;
     pointer-events: auto;
-    max-height: calc(100vh - 132px);
+    max-height: calc(100vh - 196px);
   }
 
   .desktop-location-row-wrap {
@@ -541,7 +541,7 @@
   .desktop-settings-slide {
     display: none;
     height: auto;
-    max-height: calc(100vh - 132px);
+    max-height: calc(100vh - 196px);
     overflow-y: auto;
     overflow-x: hidden;
     pointer-events: auto;
@@ -552,6 +552,11 @@
     border-radius: 14px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
     overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+
+  .desktop-settings-slide::-webkit-scrollbar {
+    display: none;
   }
 
   .desktop-settings-slide.is-open {
@@ -647,6 +652,11 @@
     padding: 0;
     position: relative;
     overflow: hidden;
+    --poster-frame-margin-top: -40px;
+    --poster-frame-margin-bottom: 18px;
+    --poster-frame-center-offset-y: calc(
+      (var(--poster-frame-margin-top) - var(--poster-frame-margin-bottom)) / 2
+    );
   }
 
   /* poster-viewport fills the entire map area */
@@ -668,8 +678,8 @@
       calc(100% - 48px),
       calc((84vh - 44px) * var(--poster-aspect, 0.6666667))
     );
-    margin-top: -40px;
-    margin-bottom: 18px;
+    margin-top: var(--poster-frame-margin-top);
+    margin-bottom: var(--poster-frame-margin-bottom);
     overflow: visible;
   }
 
@@ -682,7 +692,8 @@
   .poster-ghost-layer {
     display: block;
     position: absolute;
-    inset: 0;
+    inset: -48px -24px;
+    transform: translateY(var(--poster-frame-center-offset-y));
     z-index: 0;
     opacity: 0.45;
     filter: blur(6px) saturate(0.75) brightness(0.85);

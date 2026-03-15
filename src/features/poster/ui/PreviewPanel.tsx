@@ -172,6 +172,35 @@ export default function PreviewPanel() {
   }, [mapRef]);
 
   useEffect(() => {
+    const sourceMap = mapRef.current;
+    const ghostMap = ghostMapRef.current;
+    if (!sourceMap || !ghostMap) return;
+
+    const syncGhostViewport = () => {
+      const center = sourceMap.getCenter();
+      ghostMap.jumpTo({
+        center: [center.lng, center.lat],
+        zoom: sourceMap.getZoom(),
+        bearing: sourceMap.getBearing(),
+        pitch: sourceMap.getPitch(),
+      });
+    };
+
+    syncGhostViewport();
+    sourceMap.on("move", syncGhostViewport);
+    sourceMap.on("zoom", syncGhostViewport);
+    sourceMap.on("rotate", syncGhostViewport);
+    sourceMap.on("pitch", syncGhostViewport);
+
+    return () => {
+      sourceMap.off("move", syncGhostViewport);
+      sourceMap.off("zoom", syncGhostViewport);
+      sourceMap.off("rotate", syncGhostViewport);
+      sourceMap.off("pitch", syncGhostViewport);
+    };
+  }, [mapRef, mapStyle]);
+
+  useEffect(() => {
     if (!isMarkerEditorActive) {
       return;
     }

@@ -51,7 +51,6 @@ export default function ThemeCard({
       aria-pressed={isSelected}
       aria-label={themeOption.name}
     >
-      <p className="theme-card-name">{themeOption.name}</p>
       <div
         className={[
           "theme-card-palette",
@@ -70,6 +69,8 @@ export default function ThemeCard({
           />
         ))}
       </div>
+      <span className="theme-card-name-shadow" aria-hidden="true" />
+      <p className="theme-card-name">{themeOption.name}</p>
     </button>
   );
 }

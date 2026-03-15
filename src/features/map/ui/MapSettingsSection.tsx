@@ -145,10 +145,6 @@ export default function MapSettingsSection({
     return createCustomLayoutOption(Number(form.width), Number(form.height));
   }, [form.height, form.layout, form.width, layoutOptions]);
 
-  function openThemePicker() {
-    setActivePicker("theme");
-  }
-
   function openLayoutPicker() {
     setActivePicker("layout");
   }
@@ -312,7 +308,6 @@ export default function MapSettingsSection({
             selectedThemeId={form.theme}
             selectedThemeOption={summaryThemeOption}
             onThemeSelect={handleThemeSelect}
-            onOpenThemePicker={openThemePicker}
             onCustomize={handleOpenThemeEditor}
           />
         )}
@@ -353,9 +348,6 @@ export default function MapSettingsSection({
       <MapSettingsPickers
         activePicker={activePicker}
         onClosePicker={closePicker}
-        themeOptions={themeOptions}
-        selectedThemeId={form.theme}
-        onThemeSelect={handleThemeSelect}
         layoutGroups={layoutGroups}
         selectedLayoutId={form.layout}
         onLayoutSelect={handleLayoutSelect}
