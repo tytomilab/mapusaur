@@ -169,6 +169,38 @@
   color: #c8aeff;
 }
 
+.updates-point--info {
+  border-color: rgba(143, 204, 255, 0.42);
+}
+
+.updates-point--info .updates-point-label {
+  color: #b4dcff;
+}
+
+.updates-point--community {
+  border-color: rgba(255, 182, 125, 0.42);
+}
+
+.updates-point--community .updates-point-label {
+  color: #ffc48f;
+}
+
+.updates-point--docs {
+  border-color: rgba(156, 214, 255, 0.42);
+}
+
+.updates-point--docs .updates-point-label {
+  color: #b7dcff;
+}
+
+.updates-point--roadmap {
+  border-color: rgba(149, 255, 196, 0.42);
+}
+
+.updates-point--roadmap .updates-point-label {
+  color: #a9ffd7;
+}
+
 .updates-point--removed {
   border-color: rgba(255, 153, 153, 0.42);
 }

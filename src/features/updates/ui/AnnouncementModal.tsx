@@ -1,10 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { IoClose } from "react-icons/io5";
 
 type UpdateCategory =
   | "new"
   | "fixed"
   | "improved"
+  | "info"
+  | "community"
+  | "docs"
+  | "roadmap"
   | "removed"
   | "security"
   | "breaking"
@@ -54,6 +58,10 @@ const categoryConfig: Record<UpdateCategory, CategoryMeta> = {
   new: { icon: "✨", label: "New" },
   fixed: { icon: "🛠️", label: "Fixed" },
   improved: { icon: "🚀", label: "Improved" },
+  info: { icon: "ℹ️", label: "Info" },
+  community: { icon: "👥", label: "Community" },
+  docs: { icon: "📚", label: "Docs" },
+  roadmap: { icon: "🎯", label: "Roadmap" },
   removed: { icon: "🗑️", label: "Removed" },
   security: { icon: "🔒", label: "Security" },
   breaking: { icon: "⚠️", label: "Breaking" },
@@ -374,3 +382,4 @@ export default function AnnouncementModal() {
     </div>
   );
 }
+
