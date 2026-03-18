@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createCustomLayoutOption } from "@/features/layout/infrastructure/layoutRepository";
 import {
   DISPLAY_PALETTE_KEYS,
@@ -25,6 +25,7 @@ import type { LayoutGroup } from "@/features/layout/domain/types";
 const FALLBACK_COLOR = "#000000";
 
 interface MapSettingsSectionProps {
+  activeMobileTab?: string;
   form: PosterForm;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onNumericFieldBlur: (event: React.FocusEvent<HTMLInputElement>) => void;
@@ -42,6 +43,7 @@ interface MapSettingsSectionProps {
 }
 
 export default function MapSettingsSection({
+  activeMobileTab,
   form,
   onChange,
   onNumericFieldBlur,
@@ -68,6 +70,8 @@ export default function MapSettingsSection({
     seedColor: string;
     seedPalette: string[];
   } | null>(null);
+  const themeListRef = useRef<HTMLDivElement | null>(null);
+  const layoutGroupsRef = useRef<HTMLDivElement | null>(null);
 
   const selectedThemeOption = useMemo(() => {
     const matchingOption = themeOptions.find((t) => t.id === form.theme);
@@ -248,6 +252,41 @@ export default function MapSettingsSection({
     };
   }, [onColorEditorActiveChange]);
 
+  useEffect(() => {
+    if (activeMobileTab !== "theme") {
+      return;
+    }
+    const frameId = window.requestAnimationFrame(() => {
+      const selectedThemeCard = themeListRef.current?.querySelector<HTMLElement>(
+        ".theme-card.is-selected",
+      );
+      selectedThemeCard?.scrollIntoView({
+        behavior: "auto",
+        block: "nearest",
+        inline: "start",
+      });
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [activeMobileTab]);
+
+  useEffect(() => {
+    if (activeMobileTab !== "layout" || isLayoutEditing) {
+      return;
+    }
+    const frameId = window.requestAnimationFrame(() => {
+      const selectedLayoutCard =
+        layoutGroupsRef.current?.querySelector<HTMLElement>(
+          ".layout-card.is-selected",
+        );
+      selectedLayoutCard?.scrollIntoView({
+        behavior: "auto",
+        block: "nearest",
+        inline: "start",
+      });
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [activeMobileTab, isLayoutEditing]);
+
   const editorKey = activeColorKey || defaultColorKey;
   const editorChoices = activeColorKey
     ? activeColorChoices
@@ -309,6 +348,7 @@ export default function MapSettingsSection({
           )
         ) : (
           <ThemeSummarySection
+            listRef={themeListRef}
             themeOptions={themeOptions}
             selectedThemeId={form.theme}
             selectedThemeOption={summaryThemeOption}
@@ -369,7 +409,7 @@ export default function MapSettingsSection({
             />
           </div>
         ) : (
-          <div className="layout-inline-groups">
+          <div className="layout-inline-groups" ref={layoutGroupsRef}>
             {layoutGroups.map((group) => (
               <section key={group.id} className="layout-inline-group">
                 <h3>{group.name}</h3>

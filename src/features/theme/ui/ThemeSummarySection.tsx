@@ -1,8 +1,10 @@
+import type { RefObject } from "react";
 import ThemeCard from "./ThemeCard";
 import { EditIcon } from "@/shared/ui/Icons";
 import type { ThemeOption } from "../domain/types";
 
 interface ThemeSummarySectionProps {
+  listRef?: RefObject<HTMLDivElement>;
   themeOptions: ThemeOption[];
   selectedThemeId: string;
   selectedThemeOption: ThemeOption;
@@ -11,6 +13,7 @@ interface ThemeSummarySectionProps {
 }
 
 export default function ThemeSummarySection({
+  listRef,
   themeOptions,
   selectedThemeId,
   selectedThemeOption,
@@ -41,7 +44,12 @@ export default function ThemeSummarySection({
         </button>
       </div>
 
-      <div className="theme-card-list card-scroll-list" role="list" aria-label="Theme options">
+      <div
+        className="theme-card-list card-scroll-list"
+        role="list"
+        aria-label="Theme options"
+        ref={listRef}
+      >
         {themeOptions.map((themeOption) => (
           <ThemeCard
             key={themeOption.id}

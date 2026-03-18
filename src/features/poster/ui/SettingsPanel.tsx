@@ -3,6 +3,7 @@ import { usePosterContext } from "@/features/poster/ui/PosterContext";
 import { useFormHandlers } from "@/features/poster/application/useFormHandlers";
 import { useLocationAutocomplete } from "@/features/location/application/useLocationAutocomplete";
 import { useMapSync } from "@/features/map/application/useMapSync";
+import type { MobileTab } from "@/shared/ui/MobileNavBar";
 
 import LocationSection from "@/features/location/ui/LocationSection";
 import MapSettingsSection from "@/features/map/ui/MapSettingsSection";
@@ -56,7 +57,11 @@ const accordionSections: {
   { id: "style", label: "Style", Icon: StyleIcon },
 ];
 
-export default function SettingsPanel() {
+export default function SettingsPanel({
+  mobileTab,
+}: {
+  mobileTab?: MobileTab;
+}) {
   const { state, selectedTheme, dispatch } = usePosterContext();
   const {
     handleChange,
@@ -230,6 +235,7 @@ export default function SettingsPanel() {
           <div className="accordion-body-inner">
             {!isColorEditorActive ? (
               <MapSettingsSection
+                activeMobileTab={mobileTab}
                 form={state.form}
                 onChange={handleChange}
                 onNumericFieldBlur={handleNumericFieldBlur}
@@ -266,6 +272,7 @@ export default function SettingsPanel() {
           <div className="accordion-body-inner">
             {!isColorEditorActive ? (
               <MapSettingsSection
+                activeMobileTab={mobileTab}
                 form={state.form}
                 onChange={handleChange}
                 onNumericFieldBlur={handleNumericFieldBlur}

@@ -1066,14 +1066,15 @@ button.color-editor-target:focus-visible {
 .layout-card.is-selected {
   border-color: rgba(112, 184, 222, 0.8);
   box-shadow: 0 0 0 2px rgba(75, 149, 186, 0.22);
+  background: rgba(20, 38, 52, 0.94);
 }
 
-.layout-card:not(:disabled):hover,
-.layout-card:focus-visible {
+.layout-card:not(.is-selected):not(:disabled):hover,
+.layout-card:not(.is-selected):focus-visible {
   transform: none;
   filter: none;
-  border-color: rgba(112, 184, 222, 0.78);
-  background: rgba(20, 38, 52, 0.94);
+  border-color: rgba(151, 183, 207, 0.5);
+  background: rgba(13, 25, 36, 0.9);
 }
 
 .layout-card-copy {
@@ -1579,6 +1580,9 @@ button.marker-info-btn:focus-visible {
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
   padding-top: 10px;
   padding-right: 16px;
   padding-bottom: 2px;
@@ -2565,6 +2569,8 @@ button.location-clear-btn:focus-visible {
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
@@ -2598,6 +2604,8 @@ button.location-clear-btn:focus-visible {
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
@@ -2622,8 +2630,8 @@ button.location-clear-btn:focus-visible {
   .layout-inline-groups .layout-card,
   .layout-picker-groups .layout-card {
     margin: 0;
-    flex: 0 0 calc((100% - 8px) / 2);
-    width: calc((100% - 8px) / 2);
+    flex: 0 0 min(44vw, 164px);
+    width: min(44vw, 164px);
     height: 168px;
     scroll-snap-align: start;
   }

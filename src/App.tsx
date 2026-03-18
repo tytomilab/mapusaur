@@ -55,7 +55,7 @@ function SettingsDrawer({
           {...handleProps}
         />
         <div className="mobile-drawer-content">
-          <SettingsPanel />
+          <SettingsPanel mobileTab={mobileTab} />
         </div>
       </div>
     </div>
