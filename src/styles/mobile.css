@@ -894,9 +894,14 @@
     font-size: 0.68rem;
   }
 
-  .install-prompt,
   .app-copy {
     display: none;
+  }
+
+  .app-shell > .install-prompt {
+    margin: 10px 12px 0;
+    width: auto;
+    z-index: 35;
   }
 
   .mobile-location-row-wrap {

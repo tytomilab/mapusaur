@@ -5,6 +5,12 @@ import {
   WEEK_MS,
 } from "../domain/types";
 
+declare global {
+  interface Window {
+    __terrainkDeferredInstallPrompt?: Event;
+  }
+}
+
 function isIos(): boolean {
   return (
     /iphone|ipad|ipod/i.test(navigator.userAgent) ||
@@ -44,20 +50,35 @@ export default function useInstallPrompt() {
       setShowIosHint(true);
       return;
     }
-    if (isAndroid()) {
-      setShowAndroidHint(true);
+
+    if (window.__terrainkDeferredInstallPrompt) {
+      setDeferredPrompt(
+        window.__terrainkDeferredInstallPrompt as BeforeInstallPromptEvent,
+      );
     }
 
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+      setShowAndroidHint(false);
+      window.__terrainkDeferredInstallPrompt = e;
     };
     window.addEventListener("beforeinstallprompt", handler);
 
-    const installedHandler = () => setDeferredPrompt(null);
+    const fallbackTimer = window.setTimeout(() => {
+      if (isAndroid() && !window.__terrainkDeferredInstallPrompt) {
+        setShowAndroidHint(true);
+      }
+    }, 4000);
+
+    const installedHandler = () => {
+      setDeferredPrompt(null);
+      setShowAndroidHint(false);
+    };
     window.addEventListener("appinstalled", installedHandler);
 
     return () => {
+      window.clearTimeout(fallbackTimer);
       window.removeEventListener("beforeinstallprompt", handler);
       window.removeEventListener("appinstalled", installedHandler);
     };
@@ -73,9 +94,18 @@ export default function useInstallPrompt() {
 
   async function handleInstall() {
     if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") setDeferredPrompt(null);
+    try {
+      await deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") {
+        setDeferredPrompt(null);
+        setShowAndroidHint(false);
+      } else {
+        setShowAndroidHint(true);
+      }
+    } catch {
+      setShowAndroidHint(true);
+    }
   }
 
   return {

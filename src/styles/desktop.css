@@ -949,6 +949,17 @@
     display: none;
   }
 
+  /* Keep install prompt outside the desktop grid flow for full visibility. */
+  .app-shell > .install-prompt {
+    position: fixed;
+    top: 76px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 48;
+    width: min(560px, calc(100vw - 140px));
+    margin: 0;
+  }
+
   /* ── About modal ── */
 
   .about-modal-backdrop {
