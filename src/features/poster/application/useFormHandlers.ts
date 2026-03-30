@@ -195,7 +195,7 @@ export function useFormHandlers() {
           type: "SET_ERROR",
           error: "Please upload a valid .gpx file.",
         });
-        return;
+        return false;
       }
 
       try {
@@ -242,6 +242,7 @@ export function useFormHandlers() {
         setGpxRouteCoordinates(coordinates);
         setGpxElevationSamples(elevationSamples);
         dispatch({ type: "SET_ERROR", error: "" });
+        return true;
       } catch (error) {
         setGpxRouteCoordinates([]);
         setGpxElevationSamples([]);
@@ -250,6 +251,7 @@ export function useFormHandlers() {
           error:
             error instanceof Error ? error.message : "Failed to parse GPX file.",
         });
+        return false;
       }
     },
     [dispatch, setGpxRouteCoordinates, setGpxElevationSamples],

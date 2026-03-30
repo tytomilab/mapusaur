@@ -15,6 +15,7 @@ import {
 import { MyLocationIcon } from "@/shared/ui/Icons";
 import { usePosterContext } from "@/features/poster/ui/PosterContext";
 import { useLocationAutocomplete } from "@/features/location/application/useLocationAutocomplete";
+import { useFormHandlers } from "@/features/poster/application/useFormHandlers";
 import type { SearchResult } from "@/features/location/domain/types";
 
 const CLOSE_ANIMATION_MS = 220;
@@ -37,6 +38,7 @@ export default function StartupLocationModal({
   onComplete,
 }: StartupLocationModalProps) {
   const { dispatch } = usePosterContext();
+  const { handleGpxUpload } = useFormHandlers();
   const [isOpen, setIsOpen] = useState(true);
   const [isClosing, setIsClosing] = useState(false);
   const [locationInput, setLocationInput] = useState("");
@@ -214,6 +216,30 @@ export default function StartupLocationModal({
     }
   };
 
+  const handleStartupGpxUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) {
+      return;
+    }
+
+    setErrorMessage("");
+    setIsResolving(true);
+
+    try {
+      const ok = await handleGpxUpload(file);
+      if (ok) {
+        closeModal();
+      } else {
+        setErrorMessage("Could not load that GPX file. Try another file.");
+      }
+    } finally {
+      setIsResolving(false);
+    }
+  };
+
   if (!isOpen) {
     return null;
   }
@@ -233,6 +259,9 @@ export default function StartupLocationModal({
       <div className="startup-location-card is-visible">
         <p className="startup-location-title" id="startup-location-title">
           Choose Location
+        </p>
+        <p className="startup-location-error" role="note">
+          Start with a place search or upload a GPX route.
         </p>
         <input
           type="text"
@@ -281,6 +310,16 @@ export default function StartupLocationModal({
           <MyLocationIcon />
           <span>{isResolving ? "Locating..." : "Get my location"}</span>
         </button>
+        <label className="startup-location-action startup-location-action--confirm">
+          <span>{isResolving ? "Loading GPX..." : "Upload GPX route"}</span>
+          <input
+            type="file"
+            accept=".gpx,application/gpx+xml"
+            onChange={(event) => void handleStartupGpxUpload(event)}
+            disabled={isResolving}
+            style={{ display: "none" }}
+          />
+        </label>
         <button
           type="button"
           className="startup-location-action startup-location-action--confirm"
