@@ -56,9 +56,13 @@ export default function PreviewPanel() {
     effectiveTheme,
     mapStyle,
     mapRef,
+    posterMode,
     gpxRouteCoordinates,
     gpxElevationSamples,
   } = usePosterContext();
+  const routeCoordinates = gpxRouteCoordinates ?? [];
+  const elevationSamples = gpxElevationSamples ?? [];
+  const isGpxRouteMode = posterMode === "gpxRoute";
   const {
     form,
     selectedLocation,
@@ -186,19 +190,30 @@ export default function PreviewPanel() {
   const markersLabel = `${markerCount} marker${markerCount === 1 ? "" : "s"}`;
   const coordinatesLabel = `${formLat.toFixed(4)}, ${formLon.toFixed(4)}`;
   const hasElevationProfile =
-    gpxRouteCoordinates.length > 1 && gpxElevationSamples.length > 1;
+    routeCoordinates.length > 1 && elevationSamples.length > 1;
+  const hasGpxRoute = routeCoordinates.length > 1;
   const isCityCountryView = mapZoom >= COUNTRY_VIEW_ZOOM_LEVEL;
   const isCountryContinentView =
     mapZoom >= CONTINENT_VIEW_ZOOM_LEVEL && mapZoom < COUNTRY_VIEW_ZOOM_LEVEL;
   const cityLabel = isCityCountryView
-    ? form.displayCity || form.location || "Hanover"
+    ? isGpxRouteMode
+      ? form.displayCity || form.location || DEFAULT_LOCATION_LABEL
+      : form.displayCity || form.location || "Hanover"
     : isCountryContinentView
-      ? form.displayCountry || "Germany"
+      ? isGpxRouteMode
+        ? form.displayCountry || form.location || "Route"
+        : form.displayCountry || "Germany"
       : form.displayContinent || "Earth";
   const countryLabel = isCityCountryView
-    ? form.displayCountry || "Germany"
+    ? isGpxRouteMode
+      ? `${gpxRouteCoordinates.length} route points`
+      : form.displayCountry || "Germany"
     : isCountryContinentView
-      ? form.displayContinent || "Europe"
+      ? isGpxRouteMode
+        ? hasElevationProfile
+          ? "Elevation profile loaded"
+          : "Route loaded"
+        : form.displayContinent || "Europe"
       : "Earth";
 
   const handleStartEditing = useCallback(() => {
@@ -385,19 +400,19 @@ export default function PreviewPanel() {
   const elevationChartWidth = 320;
   const elevationChartHeight = 96;
   const elevationMin = hasElevationProfile
-    ? Math.min(...gpxElevationSamples)
+    ? Math.min(...elevationSamples)
     : 0;
   const elevationMax = hasElevationProfile
-    ? Math.max(...gpxElevationSamples)
+    ? Math.max(...elevationSamples)
     : 0;
   const elevationRange = Math.max(1, elevationMax - elevationMin);
   const elevationPolyline = hasElevationProfile
-    ? gpxElevationSamples
+    ? elevationSamples
         .map((sample, index) => {
           const x =
-            gpxElevationSamples.length === 1
+            elevationSamples.length === 1
               ? 0
-              : (index / (gpxElevationSamples.length - 1)) * elevationChartWidth;
+              : (index / (elevationSamples.length - 1)) * elevationChartWidth;
           const y =
             elevationChartHeight -
             ((sample - elevationMin) / elevationRange) * elevationChartHeight;
@@ -408,6 +423,15 @@ export default function PreviewPanel() {
 
   return (
     <section className="preview-panel">
+      {isGpxRouteMode ? (
+        <div className="preview-race-summary" aria-label="Route summary">
+          <p>GPX Route Loaded</p>
+          <p>
+            Title uses location metadata while the map stays focused on the uploaded route with {routeCoordinates.length} tracked points
+            {hasElevationProfile ? " and elevation data" : ""}.
+          </p>
+        </div>
+      ) : null}
       <div className="poster-viewport">
         {/* Desktop ghost layer: canvas clone of the main map at reduced opacity */}
         <div className="poster-ghost-layer" aria-hidden="true">
@@ -445,7 +469,8 @@ export default function PreviewPanel() {
             center={mapCenter}
             zoom={mapZoom}
             mapRef={mapRef}
-            gpxRouteCoordinates={gpxRouteCoordinates}
+            posterMode={posterMode}
+            gpxRouteCoordinates={routeCoordinates}
             interactive={isEditing && !isMarkerEditorActive}
             allowRotation={isEditing && isRotationEnabled}
             minZoom={mapMinZoom}
@@ -454,7 +479,7 @@ export default function PreviewPanel() {
             onMove={handleMove}
             onMoveEnd={handleMoveEnd}
           />
-          {form.showMarkers ? (
+          {form.showMarkers && !isGpxRouteMode ? (
             <GradientFades color={effectiveTheme.ui.bg} />
           ) : null}
           {hasVisibleMarkers ? (
@@ -609,16 +634,24 @@ export default function PreviewPanel() {
       </div>
 
       <SettingsInfo
-        location={infoLocationLabel}
+        location={
+          isGpxRouteMode
+            ? infoLocationLabel
+            : infoLocationLabel
+        }
         theme={effectiveTheme.name}
-        layout={infoLayoutLabel}
+        layout={isGpxRouteMode ? `${infoLayoutLabel} route view` : infoLayoutLabel}
         posterSize={posterSizeLabel}
         markers={markersLabel}
-        coordinates={coordinatesLabel}
+        coordinates={
+          isGpxRouteMode
+            ? `${routeCoordinates.length} route points`
+            : coordinatesLabel
+        }
       />
       {hasElevationProfile ? (
         <section className="elevation-profile" aria-label="Elevation profile">
-          <p>Elevation Profile</p>
+          <p>Race Elevation Profile</p>
           <svg
             viewBox={`0 0 ${elevationChartWidth} ${elevationChartHeight}`}
             role="img"
@@ -632,6 +665,9 @@ export default function PreviewPanel() {
               points={elevationPolyline}
             />
           </svg>
+          <p>
+            {Math.round(elevationMin)}m to {Math.round(elevationMax)}m
+          </p>
         </section>
       ) : null}
     </section>

@@ -9,7 +9,96 @@ import {
 } from "@/features/map/infrastructure";
 
 const GPX_ROUTE_SOURCE_ID = "uploaded-gpx-route";
+const GPX_ROUTE_CASING_LAYER_ID = "uploaded-gpx-route-casing";
 const GPX_ROUTE_LAYER_ID = "uploaded-gpx-route-line";
+const GPX_ROUTE_ENDPOINTS_SOURCE_ID = "uploaded-gpx-route-endpoints";
+const GPX_ROUTE_START_LAYER_ID = "uploaded-gpx-route-start";
+const GPX_ROUTE_FINISH_LAYER_ID = "uploaded-gpx-route-finish";
+const GPX_MUTED_LAYER_PREFIXES = [
+  "road",
+  "transportation",
+  "street",
+  "path",
+  "highway",
+  "rail",
+  "bridge",
+  "tunnel",
+  "waterway",
+  "place",
+  "poi",
+  "label",
+  "boundary",
+  "building",
+];
+const GPX_MUTED_TEXT_KEYS = ["text-color", "text-halo-color", "text-opacity"];
+const GPX_MUTED_LINE_KEYS = ["line-color", "line-opacity", "line-width"];
+const GPX_MUTED_FILL_KEYS = ["fill-color", "fill-opacity", "fill-outline-color"];
+const GPX_MUTED_CIRCLE_KEYS = ["circle-color", "circle-opacity", "circle-radius"];
+
+function shouldMuteLayer(layerId: string): boolean {
+  const id = layerId.toLowerCase();
+  return GPX_MUTED_LAYER_PREFIXES.some((prefix) => id.includes(prefix));
+}
+
+function applyGpxBasemapMute(map: maplibregl.Map, style: StyleSpecification): void {
+  for (const layer of style.layers) {
+    const layerId = layer.id;
+    if (!shouldMuteLayer(layerId)) {
+      continue;
+    }
+
+    if (layer.type === "symbol") {
+      for (const key of GPX_MUTED_TEXT_KEYS) {
+        if (key === "text-color") {
+          map.setPaintProperty(layerId, key, "#d8d8de");
+        } else if (key === "text-halo-color") {
+          map.setPaintProperty(layerId, key, "#f5f5f7");
+        } else if (key === "text-opacity") {
+          map.setPaintProperty(layerId, key, 0.18);
+        }
+      }
+      continue;
+    }
+
+    if (layer.type === "line") {
+      for (const key of GPX_MUTED_LINE_KEYS) {
+        if (key === "line-color") {
+          map.setPaintProperty(layerId, key, "#d6d6dc");
+        } else if (key === "line-opacity") {
+          map.setPaintProperty(layerId, key, 0.22);
+        } else if (key === "line-width") {
+          map.setPaintProperty(layerId, key, 0.8);
+        }
+      }
+      continue;
+    }
+
+    if (layer.type === "fill") {
+      for (const key of GPX_MUTED_FILL_KEYS) {
+        if (key === "fill-color") {
+          map.setPaintProperty(layerId, key, "#ececf1");
+        } else if (key === "fill-opacity") {
+          map.setPaintProperty(layerId, key, 0.35);
+        } else if (key === "fill-outline-color") {
+          map.setPaintProperty(layerId, key, "#e2e2e8");
+        }
+      }
+      continue;
+    }
+
+    if (layer.type === "circle") {
+      for (const key of GPX_MUTED_CIRCLE_KEYS) {
+        if (key === "circle-color") {
+          map.setPaintProperty(layerId, key, "#d8d8de");
+        } else if (key === "circle-opacity") {
+          map.setPaintProperty(layerId, key, 0.2);
+        } else if (key === "circle-radius") {
+          map.setPaintProperty(layerId, key, 1.5);
+        }
+      }
+    }
+  }
+}
 
 /**
  * Apply style changes incrementally via setPaintProperty / setLayoutProperty
@@ -78,6 +167,7 @@ interface MapPreviewProps {
   center: [lon: number, lat: number];
   zoom: number;
   mapRef: MapInstanceRef;
+  posterMode: "location" | "gpxRoute";
   gpxRouteCoordinates?: [lon: number, lat: number][];
   interactive?: boolean;
   allowRotation?: boolean;
@@ -101,6 +191,7 @@ export default function MapPreview({
   center,
   zoom,
   mapRef,
+  posterMode,
   gpxRouteCoordinates = [],
   interactive = false,
   allowRotation = false,
@@ -118,6 +209,7 @@ export default function MapPreview({
   const lastFittedRouteRef = useRef<string | null>(null);
   const onMoveEndRef = useRef(onMoveEnd);
   const onMoveRef = useRef(onMove);
+  const isGpxRouteMode = posterMode === "gpxRoute";
   onMoveEndRef.current = onMoveEnd;
   onMoveRef.current = onMove;
 
@@ -237,6 +329,35 @@ export default function MapPreview({
     const map = mapRef.current;
     if (!map) return;
 
+    const syncBasemapAppearance = () => {
+      if (!isGpxRouteMode) {
+        if (prevStyleRef.current) {
+          map.setStyle(prevStyleRef.current);
+        }
+        return;
+      }
+
+      if (!map.isStyleLoaded()) {
+        return;
+      }
+
+      applyGpxBasemapMute(map, style);
+    };
+
+    if (!map.isStyleLoaded()) {
+      map.once("load", syncBasemapAppearance);
+      return () => {
+        map.off("load", syncBasemapAppearance);
+      };
+    }
+
+    syncBasemapAppearance();
+  }, [isGpxRouteMode, mapRef, style]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
     const routeFeature = {
       type: "Feature" as const,
       properties: {},
@@ -245,12 +366,28 @@ export default function MapPreview({
         coordinates: gpxRouteCoordinates,
       },
     };
+    const endpointFeatures = gpxRouteCoordinates.length > 1
+      ? [
+          {
+            type: "Feature" as const,
+            properties: { role: "start" },
+            geometry: {
+              type: "Point" as const,
+              coordinates: gpxRouteCoordinates[0],
+            },
+          },
+          {
+            type: "Feature" as const,
+            properties: { role: "finish" },
+            geometry: {
+              type: "Point" as const,
+              coordinates: gpxRouteCoordinates[gpxRouteCoordinates.length - 1],
+            },
+          },
+        ]
+      : [];
 
     const ensureRouteLayer = () => {
-      if (map.getLayer(GPX_ROUTE_LAYER_ID)) {
-        return;
-      }
-
       if (!map.getSource(GPX_ROUTE_SOURCE_ID)) {
         map.addSource(GPX_ROUTE_SOURCE_ID, {
           type: "geojson",
@@ -261,25 +398,96 @@ export default function MapPreview({
         });
       }
 
-      map.addLayer({
-        id: GPX_ROUTE_LAYER_ID,
-        type: "line",
-        source: GPX_ROUTE_SOURCE_ID,
-        layout: {
-          "line-cap": "round",
-          "line-join": "round",
-        },
-        paint: {
-          "line-color": "#ff5a36",
-          "line-width": 4,
-          "line-opacity": 0.9,
-        },
-      });
+      if (!map.getLayer(GPX_ROUTE_CASING_LAYER_ID)) {
+        map.addLayer({
+          id: GPX_ROUTE_CASING_LAYER_ID,
+          type: "line",
+          source: GPX_ROUTE_SOURCE_ID,
+          layout: {
+            "line-cap": "round",
+            "line-join": "round",
+          },
+          paint: {
+            "line-color": "#fff4d6",
+            "line-width": 12,
+            "line-opacity": 0.96,
+          },
+        });
+      }
+
+      if (!map.getLayer(GPX_ROUTE_LAYER_ID)) {
+        map.addLayer({
+          id: GPX_ROUTE_LAYER_ID,
+          type: "line",
+          source: GPX_ROUTE_SOURCE_ID,
+          layout: {
+            "line-cap": "round",
+            "line-join": "round",
+          },
+          paint: {
+            "line-color": "#ff5a36",
+            "line-width": 6,
+            "line-opacity": 1,
+          },
+        });
+      }
+
+      if (!map.getSource(GPX_ROUTE_ENDPOINTS_SOURCE_ID)) {
+        map.addSource(GPX_ROUTE_ENDPOINTS_SOURCE_ID, {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: endpointFeatures,
+          },
+        });
+      }
+
+      if (!map.getLayer(GPX_ROUTE_START_LAYER_ID)) {
+        map.addLayer({
+          id: GPX_ROUTE_START_LAYER_ID,
+          type: "circle",
+          source: GPX_ROUTE_ENDPOINTS_SOURCE_ID,
+          filter: ["==", ["get", "role"], "start"],
+          paint: {
+            "circle-radius": 7,
+            "circle-color": "#22c55e",
+            "circle-stroke-color": "#ffffff",
+            "circle-stroke-width": 3,
+          },
+        });
+      }
+
+      if (!map.getLayer(GPX_ROUTE_FINISH_LAYER_ID)) {
+        map.addLayer({
+          id: GPX_ROUTE_FINISH_LAYER_ID,
+          type: "circle",
+          source: GPX_ROUTE_ENDPOINTS_SOURCE_ID,
+          filter: ["==", ["get", "role"], "finish"],
+          paint: {
+            "circle-radius": 9,
+            "circle-color": "#111111",
+            "circle-stroke-color": "#ff5a36",
+            "circle-stroke-width": 4,
+          },
+        });
+      }
     };
 
     const clearRouteLayer = () => {
+      if (map.getLayer(GPX_ROUTE_FINISH_LAYER_ID)) {
+        map.removeLayer(GPX_ROUTE_FINISH_LAYER_ID);
+      }
+      if (map.getLayer(GPX_ROUTE_START_LAYER_ID)) {
+        map.removeLayer(GPX_ROUTE_START_LAYER_ID);
+      }
       if (map.getLayer(GPX_ROUTE_LAYER_ID)) {
         map.removeLayer(GPX_ROUTE_LAYER_ID);
+      }
+      if (map.getLayer(GPX_ROUTE_CASING_LAYER_ID)) {
+        map.removeLayer(GPX_ROUTE_CASING_LAYER_ID);
+      }
+      if (map.getSource(GPX_ROUTE_ENDPOINTS_SOURCE_ID)) {
+        map.removeSource(GPX_ROUTE_ENDPOINTS_SOURCE_ID);
       }
       if (map.getSource(GPX_ROUTE_SOURCE_ID)) {
         map.removeSource(GPX_ROUTE_SOURCE_ID);
@@ -288,7 +496,7 @@ export default function MapPreview({
     };
 
     const syncRoute = () => {
-      if (gpxRouteCoordinates.length < 2) {
+      if (!isGpxRouteMode || gpxRouteCoordinates.length < 2) {
         clearRouteLayer();
         return;
       }
@@ -299,6 +507,13 @@ export default function MapPreview({
       source.setData({
         type: "FeatureCollection",
         features: [routeFeature],
+      });
+      const endpointsSource = map.getSource(
+        GPX_ROUTE_ENDPOINTS_SOURCE_ID,
+      ) as maplibregl.GeoJSONSource;
+      endpointsSource.setData({
+        type: "FeatureCollection",
+        features: endpointFeatures,
       });
 
       const routeSignature = JSON.stringify(gpxRouteCoordinates);
@@ -313,9 +528,14 @@ export default function MapPreview({
 
       lastFittedRouteRef.current = routeSignature;
       map.fitBounds(bounds, {
-        padding: 48,
+        padding: {
+          top: 104,
+          right: 28,
+          bottom: 44,
+          left: 28,
+        },
         duration: 800,
-        maxZoom: 14,
+        maxZoom: 15.5,
       });
     };
 
@@ -327,7 +547,7 @@ export default function MapPreview({
     }
 
     syncRoute();
-  }, [gpxRouteCoordinates, mapRef, style]);
+  }, [gpxRouteCoordinates, isGpxRouteMode, mapRef, style]);
 
   useEffect(() => {
     const map = mapRef.current;
