@@ -50,7 +50,7 @@ const DEFAULT_LOCATION_LABEL =
   "Hanover, Region Hannover, Lower Saxony, Germany";
 
 export default function PreviewPanel() {
-  const { state, dispatch, effectiveTheme, mapStyle, mapRef } =
+  const { state, dispatch, effectiveTheme, mapStyle, mapRef, gpxRouteCoordinates } =
     usePosterContext();
   const {
     form,
@@ -412,6 +412,7 @@ export default function PreviewPanel() {
             center={mapCenter}
             zoom={mapZoom}
             mapRef={mapRef}
+            gpxRouteCoordinates={gpxRouteCoordinates}
             interactive={isEditing && !isMarkerEditorActive}
             allowRotation={isEditing && isRotationEnabled}
             minZoom={mapMinZoom}

@@ -8,6 +8,9 @@ import {
   MAP_ZOOM_SYNC_EPSILON,
 } from "@/features/map/infrastructure";
 
+const GPX_ROUTE_SOURCE_ID = "uploaded-gpx-route";
+const GPX_ROUTE_LAYER_ID = "uploaded-gpx-route-line";
+
 /**
  * Apply style changes incrementally via setPaintProperty / setLayoutProperty
  * instead of calling setStyle() which triggers a full style diff.
@@ -75,6 +78,7 @@ interface MapPreviewProps {
   center: [lon: number, lat: number];
   zoom: number;
   mapRef: MapInstanceRef;
+  gpxRouteCoordinates?: [lon: number, lat: number][];
   interactive?: boolean;
   allowRotation?: boolean;
   minZoom?: number;
@@ -97,6 +101,7 @@ export default function MapPreview({
   center,
   zoom,
   mapRef,
+  gpxRouteCoordinates = [],
   interactive = false,
   allowRotation = false,
   minZoom,
@@ -110,6 +115,7 @@ export default function MapPreview({
   const isSyncing = useRef(false);
   const hasMountedStyleRef = useRef(false);
   const prevStyleRef = useRef<StyleSpecification | null>(null);
+  const lastFittedRouteRef = useRef<string | null>(null);
   const onMoveEndRef = useRef(onMoveEnd);
   const onMoveRef = useRef(onMove);
   onMoveEndRef.current = onMoveEnd;
@@ -226,6 +232,102 @@ export default function MapPreview({
 
     prevStyleRef.current = style;
   }, [style, mapRef]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const routeFeature = {
+      type: "Feature" as const,
+      properties: {},
+      geometry: {
+        type: "LineString" as const,
+        coordinates: gpxRouteCoordinates,
+      },
+    };
+
+    const ensureRouteLayer = () => {
+      if (map.getLayer(GPX_ROUTE_LAYER_ID)) {
+        return;
+      }
+
+      if (!map.getSource(GPX_ROUTE_SOURCE_ID)) {
+        map.addSource(GPX_ROUTE_SOURCE_ID, {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: [routeFeature],
+          },
+        });
+      }
+
+      map.addLayer({
+        id: GPX_ROUTE_LAYER_ID,
+        type: "line",
+        source: GPX_ROUTE_SOURCE_ID,
+        layout: {
+          "line-cap": "round",
+          "line-join": "round",
+        },
+        paint: {
+          "line-color": "#ff5a36",
+          "line-width": 4,
+          "line-opacity": 0.9,
+        },
+      });
+    };
+
+    const clearRouteLayer = () => {
+      if (map.getLayer(GPX_ROUTE_LAYER_ID)) {
+        map.removeLayer(GPX_ROUTE_LAYER_ID);
+      }
+      if (map.getSource(GPX_ROUTE_SOURCE_ID)) {
+        map.removeSource(GPX_ROUTE_SOURCE_ID);
+      }
+      lastFittedRouteRef.current = null;
+    };
+
+    const syncRoute = () => {
+      if (gpxRouteCoordinates.length < 2) {
+        clearRouteLayer();
+        return;
+      }
+
+      ensureRouteLayer();
+
+      const source = map.getSource(GPX_ROUTE_SOURCE_ID) as maplibregl.GeoJSONSource;
+      source.setData({
+        type: "FeatureCollection",
+        features: [routeFeature],
+      });
+
+      const routeSignature = JSON.stringify(gpxRouteCoordinates);
+      if (lastFittedRouteRef.current === routeSignature) {
+        return;
+      }
+
+      const bounds = gpxRouteCoordinates.reduce(
+        (acc, [lon, lat]) => acc.extend([lon, lat]),
+        new maplibregl.LngLatBounds(gpxRouteCoordinates[0], gpxRouteCoordinates[0]),
+      );
+
+      lastFittedRouteRef.current = routeSignature;
+      map.fitBounds(bounds, {
+        padding: 48,
+        duration: 800,
+        maxZoom: 14,
+      });
+    };
+
+    if (!map.isStyleLoaded()) {
+      map.once("load", syncRoute);
+      return () => {
+        map.off("load", syncRoute);
+      };
+    }
+
+    syncRoute();
+  }, [gpxRouteCoordinates, mapRef, style]);
 
   useEffect(() => {
     const map = mapRef.current;
