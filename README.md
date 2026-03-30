@@ -1,5 +1,3 @@
-![](./public/assets/banner.png)
-
 # MAPusaur
 
 > Turn GPX into race-ready maps.
