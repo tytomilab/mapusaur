@@ -111,9 +111,11 @@ interface PosterContextValue {
   mapStyle: StyleSpecification;
   mapRef: MapInstanceRef;
   gpxRouteCoordinates: [lon: number, lat: number][];
+  gpxElevationSamples: number[];
   setGpxRouteCoordinates: React.Dispatch<
     React.SetStateAction<[lon: number, lat: number][]>
   >;
+  setGpxElevationSamples: React.Dispatch<React.SetStateAction<number[]>>;
 }
 
 const PosterContext = createContext<PosterContextValue | null>(null);
@@ -125,6 +127,7 @@ export function PosterProvider({ children }: { children: ReactNode }) {
   const [gpxRouteCoordinates, setGpxRouteCoordinates] = useState<
     [lon: number, lat: number][]
   >([]);
+  const [gpxElevationSamples, setGpxElevationSamples] = useState<number[]>([]);
   const mapRef = useRef(null) as MapInstanceRef;
   const lastSyncedMarkerThemeColorRef = useRef<string | null>(null);
   const hasLoadedCustomIconsRef = useRef(false);
@@ -228,7 +231,9 @@ export function PosterProvider({ children }: { children: ReactNode }) {
       mapStyle,
       mapRef,
       gpxRouteCoordinates,
+      gpxElevationSamples,
       setGpxRouteCoordinates,
+      setGpxElevationSamples,
     }),
     [
       state,
@@ -236,7 +241,9 @@ export function PosterProvider({ children }: { children: ReactNode }) {
       effectiveTheme,
       mapStyle,
       gpxRouteCoordinates,
+      gpxElevationSamples,
       setGpxRouteCoordinates,
+      setGpxElevationSamples,
     ],
   );
 

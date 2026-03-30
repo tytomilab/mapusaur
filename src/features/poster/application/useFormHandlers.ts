@@ -23,7 +23,12 @@ import {
  * replacing the inline handlers previously in App.jsx.
  */
 export function useFormHandlers() {
-  const { state, dispatch, setGpxRouteCoordinates } = usePosterContext();
+  const {
+    state,
+    dispatch,
+    setGpxRouteCoordinates,
+    setGpxElevationSamples,
+  } = usePosterContext();
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -219,15 +224,27 @@ export function useFormHandlers() {
             return [lon, lat] as [number, number];
           })
           .filter((point): point is [number, number] => point !== null);
+        const elevationSamples =
+          trackPoints.length > 0
+            ? trackPoints
+                .map((point) => {
+                  const eleText = point.querySelector("ele")?.textContent;
+                  const ele = Number(eleText);
+                  return Number.isFinite(ele) ? ele : null;
+                })
+                .filter((value): value is number => value !== null)
+            : [];
 
         if (coordinates.length < 2) {
           throw new Error("GPX must include at least two route points.");
         }
 
         setGpxRouteCoordinates(coordinates);
+        setGpxElevationSamples(elevationSamples);
         dispatch({ type: "SET_ERROR", error: "" });
       } catch (error) {
         setGpxRouteCoordinates([]);
+        setGpxElevationSamples([]);
         dispatch({
           type: "SET_ERROR",
           error:
@@ -235,7 +252,7 @@ export function useFormHandlers() {
         });
       }
     },
-    [dispatch, setGpxRouteCoordinates],
+    [dispatch, setGpxRouteCoordinates, setGpxElevationSamples],
   );
 
   return {

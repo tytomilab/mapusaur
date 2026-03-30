@@ -50,8 +50,15 @@ const DEFAULT_LOCATION_LABEL =
   "Hanover, Region Hannover, Lower Saxony, Germany";
 
 export default function PreviewPanel() {
-  const { state, dispatch, effectiveTheme, mapStyle, mapRef, gpxRouteCoordinates } =
-    usePosterContext();
+  const {
+    state,
+    dispatch,
+    effectiveTheme,
+    mapStyle,
+    mapRef,
+    gpxRouteCoordinates,
+    gpxElevationSamples,
+  } = usePosterContext();
   const {
     form,
     selectedLocation,
@@ -178,6 +185,8 @@ export default function PreviewPanel() {
   const markerCount = state.markers.length;
   const markersLabel = `${markerCount} marker${markerCount === 1 ? "" : "s"}`;
   const coordinatesLabel = `${formLat.toFixed(4)}, ${formLon.toFixed(4)}`;
+  const hasElevationProfile =
+    gpxRouteCoordinates.length > 1 && gpxElevationSamples.length > 1;
   const isCityCountryView = mapZoom >= COUNTRY_VIEW_ZOOM_LEVEL;
   const isCountryContinentView =
     mapZoom >= CONTINENT_VIEW_ZOOM_LEVEL && mapZoom < COUNTRY_VIEW_ZOOM_LEVEL;
@@ -372,6 +381,30 @@ export default function PreviewPanel() {
     },
     [dispatch],
   );
+
+  const elevationChartWidth = 320;
+  const elevationChartHeight = 96;
+  const elevationMin = hasElevationProfile
+    ? Math.min(...gpxElevationSamples)
+    : 0;
+  const elevationMax = hasElevationProfile
+    ? Math.max(...gpxElevationSamples)
+    : 0;
+  const elevationRange = Math.max(1, elevationMax - elevationMin);
+  const elevationPolyline = hasElevationProfile
+    ? gpxElevationSamples
+        .map((sample, index) => {
+          const x =
+            gpxElevationSamples.length === 1
+              ? 0
+              : (index / (gpxElevationSamples.length - 1)) * elevationChartWidth;
+          const y =
+            elevationChartHeight -
+            ((sample - elevationMin) / elevationRange) * elevationChartHeight;
+          return `${x.toFixed(2)},${y.toFixed(2)}`;
+        })
+        .join(" ")
+    : "";
 
   return (
     <section className="preview-panel">
@@ -583,6 +616,24 @@ export default function PreviewPanel() {
         markers={markersLabel}
         coordinates={coordinatesLabel}
       />
+      {hasElevationProfile ? (
+        <section className="elevation-profile" aria-label="Elevation profile">
+          <p>Elevation Profile</p>
+          <svg
+            viewBox={`0 0 ${elevationChartWidth} ${elevationChartHeight}`}
+            role="img"
+            aria-label={`Elevation range ${Math.round(elevationMin)} to ${Math.round(elevationMax)} meters`}
+            style={{ width: "100%", maxWidth: "320px", height: "96px" }}
+          >
+            <polyline
+              fill="none"
+              stroke={effectiveTheme.ui.text}
+              strokeWidth="2"
+              points={elevationPolyline}
+            />
+          </svg>
+        </section>
+      ) : null}
     </section>
   );
 }
