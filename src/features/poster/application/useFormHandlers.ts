@@ -23,7 +23,7 @@ import {
  * replacing the inline handlers previously in App.jsx.
  */
 export function useFormHandlers() {
-  const { state, dispatch } = usePosterContext();
+  const { state, dispatch, setGpxRouteCoordinates } = usePosterContext();
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -182,6 +182,62 @@ export function useFormHandlers() {
     [dispatch],
   );
 
+  const handleGpxUpload = useCallback(
+    async (file: File) => {
+      const fileName = String(file?.name ?? "").toLowerCase();
+      if (!(file instanceof File) || !fileName.endsWith(".gpx")) {
+        dispatch({
+          type: "SET_ERROR",
+          error: "Please upload a valid .gpx file.",
+        });
+        return;
+      }
+
+      try {
+        const text = await file.text();
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(text, "application/xml");
+        const parserError = xml.querySelector("parsererror");
+
+        if (parserError) {
+          throw new Error("Invalid GPX XML.");
+        }
+
+        const trackPoints = Array.from(xml.querySelectorAll("trkpt"));
+        const routePoints = Array.from(xml.querySelectorAll("rtept"));
+        const points = trackPoints.length > 0 ? trackPoints : routePoints;
+
+        const coordinates = points
+          .map((point) => {
+            const lat = Number(point.getAttribute("lat"));
+            const lon = Number(point.getAttribute("lon"));
+
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+              return null;
+            }
+
+            return [lon, lat] as [number, number];
+          })
+          .filter((point): point is [number, number] => point !== null);
+
+        if (coordinates.length < 2) {
+          throw new Error("GPX must include at least two route points.");
+        }
+
+        setGpxRouteCoordinates(coordinates);
+        dispatch({ type: "SET_ERROR", error: "" });
+      } catch (error) {
+        setGpxRouteCoordinates([]);
+        dispatch({
+          type: "SET_ERROR",
+          error:
+            error instanceof Error ? error.message : "Failed to parse GPX file.",
+        });
+      }
+    },
+    [dispatch, setGpxRouteCoordinates],
+  );
+
   return {
     handleChange,
     handleNumericFieldBlur,
@@ -193,5 +249,6 @@ export function useFormHandlers() {
     handleClearLocation,
     setLocationFocused,
     handleCreditsChange,
+    handleGpxUpload,
   };
 }

@@ -25,6 +25,7 @@ export default function DesktopLocationBar() {
     handleLocationSelect: handleLocationSelectBase,
     handleClearLocation,
     setLocationFocused,
+    handleGpxUpload,
   } = useFormHandlers();
   const { locationSuggestions, isLocationSearching, searchNow } = useLocationAutocomplete(
     state.form.location,
@@ -133,6 +134,21 @@ export default function DesktopLocationBar() {
         ) : null}
 
         <div className="dsk-loc-coords">
+          <label>
+            GPX Route
+            <input
+              className="form-control-tall"
+              type="file"
+              accept=".gpx,application/gpx+xml"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  void handleGpxUpload(file);
+                }
+                event.target.value = "";
+              }}
+            />
+          </label>
           <label>
             Latitude
             <input

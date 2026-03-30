@@ -4,6 +4,7 @@ import {
   useEffect,
   useReducer,
   useMemo,
+  useState,
   useRef,
   type ReactNode,
 } from "react";
@@ -109,6 +110,10 @@ interface PosterContextValue {
   effectiveTheme: ResolvedTheme;
   mapStyle: StyleSpecification;
   mapRef: MapInstanceRef;
+  gpxRouteCoordinates: [lon: number, lat: number][];
+  setGpxRouteCoordinates: React.Dispatch<
+    React.SetStateAction<[lon: number, lat: number][]>
+  >;
 }
 
 const PosterContext = createContext<PosterContextValue | null>(null);
@@ -117,6 +122,9 @@ const PosterContext = createContext<PosterContextValue | null>(null);
 
 export function PosterProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(posterReducer, INITIAL_STATE);
+  const [gpxRouteCoordinates, setGpxRouteCoordinates] = useState<
+    [lon: number, lat: number][]
+  >([]);
   const mapRef = useRef(null) as MapInstanceRef;
   const lastSyncedMarkerThemeColorRef = useRef<string | null>(null);
   const hasLoadedCustomIconsRef = useRef(false);
@@ -219,8 +227,17 @@ export function PosterProvider({ children }: { children: ReactNode }) {
       effectiveTheme,
       mapStyle,
       mapRef,
+      gpxRouteCoordinates,
+      setGpxRouteCoordinates,
     }),
-    [state, selectedTheme, effectiveTheme, mapStyle],
+    [
+      state,
+      selectedTheme,
+      effectiveTheme,
+      mapStyle,
+      gpxRouteCoordinates,
+      setGpxRouteCoordinates,
+    ],
   );
 
   return (
